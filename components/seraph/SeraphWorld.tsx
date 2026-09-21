@@ -12,7 +12,7 @@ function Chamber() {
       <color attach="background" args={["#080706"]} />
       <fog attach="fog" args={["#080706", 4.8, 11]} />
 
-      <PerspectiveCamera makeDefault position={[0, 0.62, 6.9]} fov={35} />
+      <PerspectiveCamera makeDefault position={[0, 0.05, 7.45]} fov={34} />
 
       <ambientLight intensity={0.42} color="#8e8278" />
 
@@ -42,7 +42,7 @@ function Chamber() {
 
       <SeraraRiggedBody />
 
-      <mesh position={[0, -1.22, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh position={[0, -1.84, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[3.8, 96]} />
         <meshStandardMaterial
           color="#0d0b0a"
@@ -54,7 +54,7 @@ function Chamber() {
       </mesh>
 
       <ContactShadows
-        position={[0, -1.2, 0]}
+        position={[0, -1.82, 0]}
         opacity={0.5}
         scale={6}
         blur={2.4}
