@@ -13,7 +13,7 @@ export default function SeraphExperience() {
       <div className={styles.vignette} aria-hidden="true" />
 
       <header className={styles.header}>
-        <span>SERAPH://01</span>
+        <span>SERARA://01</span>
         <span>PHASE 01 · THE BODY</span>
       </header>
 
