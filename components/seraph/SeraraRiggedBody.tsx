@@ -134,6 +134,93 @@ const IDENTITY_SCALE: Partial<Record<BoneKey, [number, number, number]>> = {
   rightLeg: [0.9, 1.07, 0.9],
 };
 
+
+function createSeraraFaceMask() {
+  const group = new THREE.Group();
+  group.name = "SERARA_FACE_MASK";
+  group.position.set(0, 0, 0);
+
+  const shellMaterial = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color("#eee7dd"),
+    roughness: 0.3,
+    metalness: 0.004,
+    clearcoat: 0.26,
+    clearcoatRoughness: 0.62,
+    emissive: new THREE.Color("#8d5d43"),
+    emissiveIntensity: 0.022,
+  });
+
+  const shell = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 48, 36),
+    shellMaterial,
+  );
+  shell.name = "SERARA_FACE_SHELL";
+  shell.position.set(0, 0.00625, 0.0002);
+  shell.scale.set(0.0049, 0.00705, 0.00455);
+  shell.castShadow = true;
+  shell.receiveShadow = true;
+  group.add(shell);
+
+  const socketMaterial = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color("#171313"),
+    roughness: 0.34,
+    metalness: 0.02,
+    emissive: new THREE.Color("#4b2624"),
+    emissiveIntensity: 0.12,
+  });
+
+  for (const side of [-1, 1] as const) {
+    const eye = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 28, 20),
+      socketMaterial.clone(),
+    );
+    eye.name = side < 0 ? "SERARA_EYE_L" : "SERARA_EYE_R";
+    eye.position.set(side * 0.00172, 0.00675, 0.00428);
+    eye.scale.set(0.00128, 0.00048, 0.00034);
+    group.add(eye);
+
+    const inner = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 20, 14),
+      new THREE.MeshPhysicalMaterial({
+        color: new THREE.Color("#c59365"),
+        roughness: 0.2,
+        emissive: new THREE.Color("#9b4f37"),
+        emissiveIntensity: 0.34,
+      }),
+    );
+    inner.position.set(side * 0.00172, 0.00672, 0.00456);
+    inner.scale.set(0.00028, 0.00018, 0.00012);
+    group.add(inner);
+  }
+
+  const nose = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.00042, 0.0015, 6, 16),
+    shellMaterial.clone(),
+  );
+  nose.name = "SERARA_NOSE_RIDGE";
+  nose.position.set(0, 0.00555, 0.00442);
+  nose.rotation.x = Math.PI / 2;
+  nose.scale.set(0.72, 1, 0.56);
+  group.add(nose);
+
+  const mouth = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.00018, 0.00155, 5, 14),
+    new THREE.MeshStandardMaterial({
+      color: new THREE.Color("#4d3734"),
+      roughness: 0.52,
+      emissive: new THREE.Color("#5a2d29"),
+      emissiveIntensity: 0.05,
+    }),
+  );
+  mouth.name = "SERARA_MOUTH_LINE";
+  mouth.position.set(0, 0.00365, 0.00448);
+  mouth.rotation.z = Math.PI / 2;
+  mouth.scale.set(1, 1, 0.5);
+  group.add(mouth);
+
+  return group;
+}
+
 function smoothStep(edge0: number, edge1: number, value: number) {
   const x = THREE.MathUtils.clamp(
     (value - edge0) / Math.max(0.0001, edge1 - edge0),
@@ -227,6 +314,13 @@ export default function SeraraRiggedBody() {
         scale: object.scale.clone(),
       };
     });
+
+    if (bones.head) {
+      const existingMask = bones.head.getObjectByName("SERARA_FACE_MASK");
+      if (!existingMask) {
+        bones.head.add(createSeraraFaceMask());
+      }
+    }
 
     return {
       scene: cloned,
