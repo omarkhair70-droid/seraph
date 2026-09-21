@@ -1,19 +1,8 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useRef, type MutableRefObject } from "react";
 import * as THREE from "three";
-
-type LimbRefs = {
-  leftShoulder: THREE.Group | null;
-  rightShoulder: THREE.Group | null;
-  leftForearm: THREE.Group | null;
-  rightForearm: THREE.Group | null;
-  chest: THREE.Group | null;
-  pelvis: THREE.Group | null;
-  neck: THREE.Group | null;
-  head: THREE.Group | null;
-};
 
 function SeraphMaterial({
   emissive = 0.04,
@@ -56,8 +45,8 @@ function Arm({
   forearmRef,
 }: {
   side: -1 | 1;
-  shoulderRef: React.MutableRefObject<THREE.Group | null>;
-  forearmRef: React.MutableRefObject<THREE.Group | null>;
+  shoulderRef: MutableRefObject<THREE.Group | null>;
+  forearmRef: MutableRefObject<THREE.Group | null>;
 }) {
   const sign = side;
 
@@ -217,83 +206,69 @@ export default function SeraphBody() {
   const leftForearmRef = useRef<THREE.Group>(null);
   const rightForearmRef = useRef<THREE.Group>(null);
 
-  const refs = useMemo<LimbRefs>(
-    () => ({
-      leftShoulder: null,
-      rightShoulder: null,
-      leftForearm: null,
-      rightForearm: null,
-      chest: null,
-      pelvis: null,
-      neck: null,
-      head: null,
-    }),
-    [],
-  );
-
   useFrame(({ clock }, delta) => {
     const t = clock.elapsedTime;
     const breath = Math.sin(t * 1.15) * 0.5 + 0.5;
     const slow = Math.sin(t * 0.23) * 0.5 + 0.5;
 
-    refs.leftShoulder = leftShoulderRef.current;
-    refs.rightShoulder = rightShoulderRef.current;
-    refs.leftForearm = leftForearmRef.current;
-    refs.rightForearm = rightForearmRef.current;
-    refs.chest = chestRef.current;
-    refs.pelvis = pelvisRef.current;
-    refs.neck = neckRef.current;
-    refs.head = headRef.current;
+    const leftShoulder = leftShoulderRef.current;
+    const rightShoulder = rightShoulderRef.current;
+    const leftForearm = leftForearmRef.current;
+    const rightForearm = rightForearmRef.current;
+    const chest = chestRef.current;
+    const pelvis = pelvisRef.current;
+    const neck = neckRef.current;
+    const head = headRef.current;
 
-    if (refs.chest) {
+    if (chest) {
       const chestScale = 1 + breath * 0.018;
-      refs.chest.scale.y = THREE.MathUtils.lerp(
-        refs.chest.scale.y,
+      chest.scale.y = THREE.MathUtils.lerp(
+        chest.scale.y,
         chestScale,
         Math.min(1, delta * 4),
       );
-      refs.chest.rotation.z = Math.sin(t * 0.19) * 0.008;
+      chest.rotation.z = Math.sin(t * 0.19) * 0.008;
     }
 
-    if (refs.pelvis) {
-      refs.pelvis.rotation.z = Math.sin(t * 0.17 + 0.8) * 0.006;
+    if (pelvis) {
+      pelvis.rotation.z = Math.sin(t * 0.17 + 0.8) * 0.006;
     }
 
-    if (refs.neck) {
-      refs.neck.rotation.y = Math.sin(t * 0.13) * 0.035;
-      refs.neck.rotation.x = Math.sin(t * 0.21 + 0.4) * 0.012;
+    if (neck) {
+      neck.rotation.y = Math.sin(t * 0.13) * 0.035;
+      neck.rotation.x = Math.sin(t * 0.21 + 0.4) * 0.012;
     }
 
-    if (refs.head) {
-      refs.head.rotation.y = Math.sin(t * 0.13) * 0.025;
-      refs.head.rotation.z = Math.sin(t * 0.1 + 1.2) * 0.012;
-      refs.head.position.y = 1.91 + breath * 0.008;
+    if (head) {
+      head.rotation.y = Math.sin(t * 0.13) * 0.025;
+      head.rotation.z = Math.sin(t * 0.1 + 1.2) * 0.012;
+      head.position.y = 1.91 + breath * 0.008;
     }
 
     const graceOpen = 0.15 + slow * 0.035;
 
-    if (refs.leftShoulder) {
-      refs.leftShoulder.rotation.z = THREE.MathUtils.lerp(
-        refs.leftShoulder.rotation.z,
+    if (leftShoulder) {
+      leftShoulder.rotation.z = THREE.MathUtils.lerp(
+        leftShoulder.rotation.z,
         graceOpen,
         Math.min(1, delta * 1.2),
       );
     }
 
-    if (refs.rightShoulder) {
-      refs.rightShoulder.rotation.z = THREE.MathUtils.lerp(
-        refs.rightShoulder.rotation.z,
+    if (rightShoulder) {
+      rightShoulder.rotation.z = THREE.MathUtils.lerp(
+        rightShoulder.rotation.z,
         -graceOpen,
         Math.min(1, delta * 1.2),
       );
     }
 
-    if (refs.leftForearm) {
-      refs.leftForearm.rotation.z = 0.025 + Math.sin(t * 0.31) * 0.012;
+    if (leftForearm) {
+      leftForearm.rotation.z = 0.025 + Math.sin(t * 0.31) * 0.012;
     }
 
-    if (refs.rightForearm) {
-      refs.rightForearm.rotation.z = -0.025 - Math.sin(t * 0.31) * 0.012;
+    if (rightForearm) {
+      rightForearm.rotation.z = -0.025 - Math.sin(t * 0.31) * 0.012;
     }
 
     if (rootRef.current) {
