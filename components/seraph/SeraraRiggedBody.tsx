@@ -7,12 +7,13 @@ import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 
 const MODEL_URL = "/assets/serara-human.glb";
+const TARGET_HEIGHT = 3.65;
 
 export default function SeraraRiggedBody() {
-  const rootRef = useRef<THREE.Group>(null);
+  const motionRef = useRef<THREE.Group>(null);
   const { scene, animations } = useGLTF(MODEL_URL);
 
-  const body = useMemo(() => {
+  const fitted = useMemo(() => {
     const cloned = clone(scene);
 
     cloned.traverse((object) => {
@@ -38,10 +39,26 @@ export default function SeraraRiggedBody() {
       }
     });
 
-    return cloned;
+    cloned.updateMatrixWorld(true);
+
+    const box = new THREE.Box3().setFromObject(cloned);
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+
+    box.getSize(size);
+    box.getCenter(center);
+
+    const safeHeight = Math.max(size.y, 0.001);
+    const scale = TARGET_HEIGHT / safeHeight;
+
+    return {
+      scene: cloned,
+      scale,
+      offset: new THREE.Vector3(-center.x, -center.y, -center.z),
+    };
   }, [scene]);
 
-  const { actions } = useAnimations(animations, rootRef);
+  const { actions } = useAnimations(animations, motionRef);
 
   useEffect(() => {
     const entries = Object.entries(actions);
@@ -67,31 +84,30 @@ export default function SeraraRiggedBody() {
   }, [actions]);
 
   useFrame(({ clock, pointer }, delta) => {
-    const root = rootRef.current;
-    if (!root) return;
+    const motion = motionRef.current;
+    if (!motion) return;
 
     const t = clock.elapsedTime;
+    const targetYaw = pointer.x * 0.05 + Math.sin(t * 0.11) * 0.008;
 
-    const targetYaw = pointer.x * 0.055 + Math.sin(t * 0.11) * 0.009;
-    root.rotation.y = THREE.MathUtils.lerp(
-      root.rotation.y,
+    motion.rotation.y = THREE.MathUtils.lerp(
+      motion.rotation.y,
       targetYaw,
-      Math.min(1, delta * 1.25),
+      Math.min(1, delta * 1.2),
     );
 
-    root.rotation.z = THREE.MathUtils.lerp(
-      root.rotation.z,
-      -pointer.x * 0.006 + Math.sin(t * 0.17) * 0.003,
+    motion.rotation.z = THREE.MathUtils.lerp(
+      motion.rotation.z,
+      -pointer.x * 0.004 + Math.sin(t * 0.17) * 0.0025,
       Math.min(1, delta * 0.8),
     );
-
-    const breath = 1 + Math.sin(t * 1.08) * 0.0025;
-    root.scale.setScalar(0.64 * breath);
   });
 
   return (
-    <group ref={rootRef} position={[0, 0.55, 0]} scale={0.64}>
-      <primitive object={body} />
+    <group ref={motionRef}>
+      <group scale={fitted.scale}>
+        <primitive object={fitted.scene} position={fitted.offset} />
+      </group>
     </group>
   );
 }
