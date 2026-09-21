@@ -3,7 +3,7 @@
 import { useAnimations, useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { clone } from "three/examples/jsm/utils/SkeletonUtils.js";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 
 const MODEL_URL = "/assets/serara-human.glb";
@@ -157,7 +157,6 @@ function stateFromCycle(time: number) {
 
 export default function SeraraRiggedBody() {
   const motionRef = useRef<THREE.Group>(null);
-  const [postureLabel, setPostureLabel] = useState<SeraraPosture>("grace");
   const { scene, animations } = useGLTF(MODEL_URL);
 
   const fitted = useMemo(() => {
@@ -245,10 +244,6 @@ export default function SeraraRiggedBody() {
     const t = clock.elapsedTime;
     const state = stateFromCycle(t);
 
-    if (state.label !== postureLabel) {
-      setPostureLabel(state.label);
-    }
-
     const targetYaw =
       pointer.x * 0.035 +
       Math.sin(t * 0.11) * 0.006 -
@@ -303,22 +298,11 @@ export default function SeraraRiggedBody() {
   });
 
   return (
-    <>
-      <group ref={motionRef}>
-        <group scale={fitted.scale}>
-          <primitive object={fitted.scene} position={fitted.offset} />
-        </group>
+    <group ref={motionRef}>
+      <group scale={fitted.scale}>
+        <primitive object={fitted.scene} position={fitted.offset} />
       </group>
-
-      <group position={[0, 2.03, 0]}>
-        <mesh visible={false}>
-          <planeGeometry args={[0.01, 0.01]} />
-          <meshBasicMaterial transparent opacity={0} />
-        </mesh>
-      </group>
-
-      <div data-serara-posture={postureLabel} style={{ display: "none" }} />
-    </>
+    </group>
   );
 }
 
