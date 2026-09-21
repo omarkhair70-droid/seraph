@@ -11,11 +11,11 @@ permissions:
 
 jobs:
   build-serara:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
 
       - name: Restore Blender builder
         run: |
@@ -26,10 +26,14 @@ jobs:
           PY
           python -m py_compile tools/serara3d/build_serara.py
 
-      - name: Install Blender and GLTF dependencies
+      - name: Install Blender 5.2.2 LTS production runtime
         run: |
           sudo apt-get update
-          sudo apt-get install -y blender python3-numpy libegl1 libgl1 libglx-mesa0 libgl1-mesa-dri mesa-utils
+          sudo apt-get install -y xz-utils libegl1 libgl1 libglx-mesa0 libgl1-mesa-dri             libx11-6 libxi6 libxrender1 libxfixes3 libxxf86vm1 libsm6 libice6
+          curl -fL --retry 3             https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz             -o /tmp/blender.tar.xz
+          sudo mkdir -p /opt/blender
+          sudo tar -xJf /tmp/blender.tar.xz -C /opt/blender --strip-components=1
+          sudo ln -sf /opt/blender/blender /usr/local/bin/blender
           blender --version
           blender -b --python-expr "import numpy; print('BLENDER_NUMPY=' + numpy.__version__)"
 
@@ -44,7 +48,7 @@ jobs:
           cat SERARA_3D_FINAL/SERARA_BUILD_REPORT.json
 
       - name: Upload production deliverables
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: SERARA_3D_FINAL
           path: SERARA_3D_FINAL/
