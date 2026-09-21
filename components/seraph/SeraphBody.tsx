@@ -135,22 +135,42 @@ function Face() {
       <mesh position={[-0.17, 0.11, 0.435]} scale={[1.35, 0.58, 0.42]}>
         <sphereGeometry args={[0.105, 24, 16]} />
         <meshPhysicalMaterial
-          color="#1a1716"
-          roughness={0.28}
+          color="#171413"
+          roughness={0.32}
           metalness={0.02}
-          emissive="#6c392c"
-          emissiveIntensity={0.12}
+          emissive="#542c25"
+          emissiveIntensity={0.08}
+        />
+      </mesh>
+
+      <mesh position={[-0.17, 0.11, 0.492]} scale={[0.8, 0.8, 0.45]}>
+        <sphereGeometry args={[0.046, 20, 16]} />
+        <meshPhysicalMaterial
+          color="#d6ad78"
+          roughness={0.24}
+          emissive="#b36b45"
+          emissiveIntensity={0.38}
         />
       </mesh>
 
       <mesh position={[0.17, 0.11, 0.435]} scale={[1.35, 0.58, 0.42]}>
         <sphereGeometry args={[0.105, 24, 16]} />
         <meshPhysicalMaterial
-          color="#1a1716"
-          roughness={0.28}
+          color="#171413"
+          roughness={0.32}
           metalness={0.02}
-          emissive="#6c392c"
-          emissiveIntensity={0.12}
+          emissive="#542c25"
+          emissiveIntensity={0.08}
+        />
+      </mesh>
+
+      <mesh position={[0.17, 0.11, 0.492]} scale={[0.8, 0.8, 0.45]}>
+        <sphereGeometry args={[0.046, 20, 16]} />
+        <meshPhysicalMaterial
+          color="#d6ad78"
+          roughness={0.24}
+          emissive="#b36b45"
+          emissiveIntensity={0.38}
         />
       </mesh>
 
@@ -172,12 +192,21 @@ function Face() {
         <meshStandardMaterial color="#8f877d" roughness={0.7} />
       </mesh>
 
-      <mesh position={[0, -0.005, 0.49]} rotation={[Math.PI / 2, 0, 0]}>
-        <coneGeometry args={[0.075, 0.28, 18]} />
+      <mesh position={[0, 0.015, 0.455]} scale={[0.34, 0.86, 0.36]}>
+        <capsuleGeometry args={[0.105, 0.2, 8, 18]} />
         <SeraphMaterial roughness={0.62} />
       </mesh>
 
-      <mesh position={[0, -0.18, 0.45]} scale={[1, 0.18, 0.18]}>
+      <mesh position={[0, -0.085, 0.505]} scale={[0.78, 0.36, 0.46]}>
+        <sphereGeometry args={[0.095, 20, 14]} />
+        <SeraphMaterial roughness={0.64} />
+      </mesh>
+
+      <mesh
+        position={[0, -0.18, 0.45]}
+        rotation={[0, 0, Math.PI / 2]}
+        scale={[1, 0.18, 0.18]}
+      >
         <capsuleGeometry args={[0.055, 0.18, 6, 18]} />
         <meshStandardMaterial
           color="#42302f"
@@ -206,7 +235,7 @@ export default function SeraphBody() {
   const leftForearmRef = useRef<THREE.Group>(null);
   const rightForearmRef = useRef<THREE.Group>(null);
 
-  useFrame(({ clock }, delta) => {
+  useFrame(({ clock, pointer }, delta) => {
     const t = clock.elapsedTime;
     const breath = Math.sin(t * 1.15) * 0.5 + 0.5;
     const slow = Math.sin(t * 0.23) * 0.5 + 0.5;
@@ -240,7 +269,19 @@ export default function SeraphBody() {
     }
 
     if (head) {
-      head.rotation.y = Math.sin(t * 0.13) * 0.025;
+      const targetYaw = pointer.x * 0.11 + Math.sin(t * 0.13) * 0.025;
+      const targetPitch = -pointer.y * 0.045 + Math.sin(t * 0.21) * 0.008;
+
+      head.rotation.y = THREE.MathUtils.lerp(
+        head.rotation.y,
+        targetYaw,
+        Math.min(1, delta * 1.7),
+      );
+      head.rotation.x = THREE.MathUtils.lerp(
+        head.rotation.x,
+        targetPitch,
+        Math.min(1, delta * 1.5),
+      );
       head.rotation.z = Math.sin(t * 0.1 + 1.2) * 0.012;
       head.position.y = 1.91 + breath * 0.008;
     }
