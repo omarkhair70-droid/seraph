@@ -5,6 +5,10 @@ import { useFrame } from "@react-three/fiber";
 import { clone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
+import {
+  createSeraraBodyMaterial,
+  createSeraraMaterialSignals,
+} from "./serara-material";
 
 const MODEL_URL = "/assets/serara-human.glb";
 const TARGET_HEIGHT = 3.65;
@@ -277,20 +281,21 @@ function stateFromCycle(time: number) {
 
 export default function SeraraRiggedBody() {
   const motionRef = useRef<THREE.Group>(null);
+  const attentionRef = useRef(new THREE.Vector2());
+  const attentionTargetRef = useRef(new THREE.Vector2());
   const { scene } = useGLTF(MODEL_URL);
 
   const fitted = useMemo(() => {
     const cloned = clone(scene);
 
-    const porcelain = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color("#e4ddd2"),
-      roughness: 0.38,
-      metalness: 0.008,
-      clearcoat: 0.2,
-      clearcoatRoughness: 0.7,
-      emissive: new THREE.Color("#8d5f44"),
-      emissiveIntensity: 0.028,
-    });
+    const materialSignals = createSeraraMaterialSignals();
+    const materials: THREE.MeshPhysicalMaterial[] = [];
+
+    const makeMaterial = () => {
+      const material = createSeraraBodyMaterial(materialSignals);
+      materials.push(material);
+      return material;
+    };
 
     cloned.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) return;
@@ -299,9 +304,9 @@ export default function SeraraRiggedBody() {
       object.receiveShadow = true;
 
       if (Array.isArray(object.material)) {
-        object.material = object.material.map(() => porcelain.clone());
+        object.material = object.material.map(() => makeMaterial());
       } else {
-        object.material = porcelain.clone();
+        object.material = makeMaterial();
       }
     });
 
@@ -344,6 +349,8 @@ export default function SeraraRiggedBody() {
       offset: new THREE.Vector3(-center.x, -center.y, -center.z),
       bones,
       bind,
+      materialSignals,
+      materials,
     };
   }, [scene]);
 
@@ -353,6 +360,34 @@ export default function SeraraRiggedBody() {
 
     const t = clock.elapsedTime;
     const state = stateFromCycle(t);
+
+    fitted.materialSignals.time.value = t;
+    fitted.materialSignals.grace.value = state.grace;
+    fitted.materialSignals.tension.value = state.tension;
+    fitted.materialSignals.fall.value = state.fall;
+
+    for (const material of fitted.materials) {
+      material.roughness = THREE.MathUtils.lerp(
+        0.3,
+        0.62,
+        state.tension * 0.35 + state.fall * 0.78,
+      );
+      material.emissiveIntensity =
+        0.018 + state.grace * 0.025 + state.tension * 0.045 + state.fall * 0.065;
+    }
+
+    attentionTargetRef.current.set(pointer.x, pointer.y);
+    attentionRef.current.lerp(
+      attentionTargetRef.current,
+      Math.min(1, delta * (0.7 + state.tension * 0.4)),
+    );
+
+    const attentionYaw =
+      attentionRef.current.x * (0.055 - state.fall * 0.018) +
+      Math.sin(t * 0.17) * 0.008;
+    const attentionPitch =
+      -attentionRef.current.y * 0.028 +
+      Math.sin(t * 0.13 + 0.6) * 0.005;
 
     const targetYaw =
       pointer.x * 0.032 +
@@ -411,8 +446,21 @@ export default function SeraraRiggedBody() {
               ? -breathing * 0.15
               : 0;
 
+      const gazeX =
+        key === "head"
+          ? attentionPitch
+          : key === "neck"
+            ? attentionPitch * 0.32
+            : 0;
+      const gazeY =
+        key === "head"
+          ? attentionYaw
+          : key === "neck"
+            ? attentionYaw * 0.26
+            : 0;
+
       const posture = new THREE.Quaternion().setFromEuler(
-        new THREE.Euler(x + breathOffset, y, z, "XYZ"),
+        new THREE.Euler(x + breathOffset + gazeX, y + gazeY, z, "XYZ"),
       );
 
       bone.quaternion.copy(base.quaternion).multiply(posture);

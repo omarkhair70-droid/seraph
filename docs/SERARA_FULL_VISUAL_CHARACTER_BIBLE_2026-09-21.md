@@ -124,6 +124,38 @@ Use:
 - interaction, rendering, sound and environment are one system
 - mobile/browser constraints are designed around, not ignored
 
+## Synthetic self / adaptive body — Universal Everything, Future You
+Use:
+- the body can activate a synthetic being rather than merely control it
+- movement can alter form while the digital being preserves its own identity
+- generated variation should make encounters non-identical
+- collapse / transformation can be part of the encounter lifecycle
+
+Do not copy:
+- robotic visual language
+- mirror-one-to-one movement as the final SERARA behavior
+
+## Gaze as character — Random International, Audience / Alone Together
+Use:
+- very small orientation changes can imply attention and personality
+- a system can notice a visitor without becoming a puppet
+- gaze may lag, hesitate, select or avoid full confrontation
+- attention itself is an event
+
+Do not copy:
+- surveillance framing
+- literal mirror mechanics
+
+## Breath beyond the body — Marshmallow Laser Feast, Works of Nature / Evolver
+Use:
+- breath can connect body, atmosphere and world state
+- internal systems can become landscape
+- audiovisual rhythm can make invisible life-processes perceptible
+
+Do not copy:
+- anatomical visualization literally
+- meditation language as interface copy
+
 ---
 
 # 4. THE BODY
