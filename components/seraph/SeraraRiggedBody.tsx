@@ -155,8 +155,8 @@ function createSeraraFaceMask() {
     shellMaterial,
   );
   shell.name = "SERARA_FACE_SHELL";
-  shell.position.set(0, 0.00625, 0.0002);
-  shell.scale.set(0.0049, 0.00705, 0.00455);
+  shell.position.set(0, 0.0061, 0.00355);
+  shell.scale.set(0.00415, 0.00635, 0.00118);
   shell.castShadow = true;
   shell.receiveShadow = true;
   group.add(shell);
@@ -175,8 +175,8 @@ function createSeraraFaceMask() {
       socketMaterial.clone(),
     );
     eye.name = side < 0 ? "SERARA_EYE_L" : "SERARA_EYE_R";
-    eye.position.set(side * 0.00172, 0.00675, 0.00428);
-    eye.scale.set(0.00128, 0.00048, 0.00034);
+    eye.position.set(side * 0.00148, 0.00672, 0.00474);
+    eye.scale.set(0.00102, 0.00034, 0.00018);
     group.add(eye);
 
     const inner = new THREE.Mesh(
@@ -188,8 +188,8 @@ function createSeraraFaceMask() {
         emissiveIntensity: 0.34,
       }),
     );
-    inner.position.set(side * 0.00172, 0.00672, 0.00456);
-    inner.scale.set(0.00028, 0.00018, 0.00012);
+    inner.position.set(side * 0.00148, 0.00672, 0.00493);
+    inner.scale.set(0.0002, 0.00012, 0.00008);
     group.add(inner);
   }
 
@@ -198,7 +198,7 @@ function createSeraraFaceMask() {
     shellMaterial.clone(),
   );
   nose.name = "SERARA_NOSE_RIDGE";
-  nose.position.set(0, 0.00555, 0.00442);
+  nose.position.set(0, 0.0055, 0.00472);
   nose.rotation.x = Math.PI / 2;
   nose.scale.set(0.72, 1, 0.56);
   group.add(nose);
@@ -213,7 +213,7 @@ function createSeraraFaceMask() {
     }),
   );
   mouth.name = "SERARA_MOUTH_LINE";
-  mouth.position.set(0, 0.00365, 0.00448);
+  mouth.position.set(0, 0.00382, 0.00478);
   mouth.rotation.z = Math.PI / 2;
   mouth.scale.set(1, 1, 0.5);
   group.add(mouth);
@@ -231,6 +231,22 @@ function smoothStep(edge0: number, edge1: number, value: number) {
 }
 
 function stateFromCycle(time: number) {
+  if (typeof window !== "undefined") {
+    const forced = new URLSearchParams(window.location.search).get("pose");
+
+    if (forced === "grace") {
+      return { grace: 1, tension: 0, fall: 0 };
+    }
+
+    if (forced === "tension") {
+      return { grace: 0, tension: 1, fall: 0 };
+    }
+
+    if (forced === "fall") {
+      return { grace: 0, tension: 0, fall: 1 };
+    }
+  }
+
   const cycle = time % 30;
 
   if (cycle < 8) {
