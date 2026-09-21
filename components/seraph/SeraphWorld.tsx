@@ -4,7 +4,7 @@ import { ContactShadows, PerspectiveCamera } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { Suspense } from "react";
 import * as THREE from "three";
-import SeraphBody from "./SeraphBody";
+import SeraraRiggedBody from "./SeraraRiggedBody";
 
 function Chamber() {
   return (
@@ -12,7 +12,7 @@ function Chamber() {
       <color attach="background" args={["#080706"]} />
       <fog attach="fog" args={["#080706", 4.8, 11]} />
 
-      <PerspectiveCamera makeDefault position={[0, 0.62, 6.35]} fov={35} />
+      <PerspectiveCamera makeDefault position={[0, 0.62, 6.9]} fov={35} />
 
       <ambientLight intensity={0.42} color="#8e8278" />
 
@@ -40,9 +40,7 @@ function Chamber() {
         color="#d8a06c"
       />
 
-      <group position={[0, 0.9, 0]}>
-        <SeraphBody />
-      </group>
+      <SeraraRiggedBody />
 
       <mesh position={[0, -1.22, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[3.8, 96]} />
