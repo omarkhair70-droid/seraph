@@ -44,7 +44,7 @@ function Chamber() {
         <SeraphBody />
       </group>
 
-      <mesh position={[0, -1.72, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh position={[0, -1.22, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[3.8, 96]} />
         <meshStandardMaterial
           color="#0d0b0a"
@@ -56,7 +56,7 @@ function Chamber() {
       </mesh>
 
       <ContactShadows
-        position={[0, -1.7, 0]}
+        position={[0, -1.2, 0]}
         opacity={0.5}
         scale={6}
         blur={2.4}
