@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SERAPH://01 — FALL / ASCENT",
+  title: "SERARA://01 — FALL / ASCENT",
   description:
     "An embodied interactive world where human posture changes a living digital presence.",
   robots: {
