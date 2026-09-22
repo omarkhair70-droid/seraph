@@ -15,6 +15,7 @@ import {
   getSeraraState,
 } from "./serara-state";
 import { createSeraraSonic } from "./serara-sonic";
+import { triggerSeraraBurst } from "./serara-runtime-signal";
 
 const MODEL_URL = "/assets/serara-canonical.glb";
 const TARGET_HEIGHT = 3.65;
@@ -644,6 +645,7 @@ export default function SeraraCanonicalBody() {
       onPointerDown={(event) => {
         event.stopPropagation();
         impulseRef.current = 1;
+        triggerSeraraBurst();
         void sonic.wake();
         sonic.burst();
       }}
