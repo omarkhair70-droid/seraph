@@ -8,6 +8,7 @@ import {
   getSeraraPulse,
   getSeraraState,
 } from "./serara-state";
+import { getSeraraBurst } from "./serara-runtime-signal";
 
 function seeded(index: number, salt = 0) {
   const value = Math.sin(index * 12.9898 + salt * 78.233) * 43758.5453;
@@ -67,6 +68,7 @@ function EmberField() {
     const state = getSeraraState(t);
     const presence = getSeraraPresence(pointer);
     const pulse = getSeraraPulse(t, state);
+    const burst = getSeraraBurst();
     const attribute = points.geometry.getAttribute(
       "position",
     ) as THREE.BufferAttribute;
@@ -100,7 +102,8 @@ function EmberField() {
       state.grace * 0.08 +
       state.tension * 0.38 +
       state.fall * 0.58 +
-      presence * pulse * 0.18;
+      presence * pulse * 0.18 +
+      burst * 0.5;
 
     material.opacity = THREE.MathUtils.lerp(
       material.opacity,
@@ -110,7 +113,7 @@ function EmberField() {
 
     material.size = THREE.MathUtils.lerp(
       material.size,
-      0.022 + state.tension * 0.013 + state.fall * 0.021,
+      0.022 + state.tension * 0.013 + state.fall * 0.021 + burst * 0.018,
       Math.min(1, delta * 2.2),
     );
 
@@ -237,7 +240,8 @@ function HostileFragments() {
     const state = getSeraraState(t);
     const presence = getSeraraPresence(pointer);
     const pulse = getSeraraPulse(t, state);
-    const conflict = state.tension * 0.64 + state.fall;
+    const burst = getSeraraBurst();
+    const conflict = state.tension * 0.64 + state.fall + burst * 0.7;
 
     fragments.forEach((fragment, index) => {
       const angle =
@@ -283,13 +287,13 @@ function HostileFragments() {
 
     material.opacity = THREE.MathUtils.lerp(
       material.opacity,
-      0.18 + state.tension * 0.2 + state.fall * 0.34,
+      0.18 + state.tension * 0.2 + state.fall * 0.34 + burst * 0.2,
       Math.min(1, delta * 2),
     );
 
     material.emissiveIntensity = THREE.MathUtils.lerp(
       material.emissiveIntensity,
-      0.06 + state.tension * 0.22 + state.fall * 0.42 + pulse * presence * 0.1,
+      0.06 + state.tension * 0.22 + state.fall * 0.42 + pulse * presence * 0.1 + burst * 0.5,
       Math.min(1, delta * 2.4),
     );
   });
@@ -403,7 +407,7 @@ function RitualRibbon({
     const t = clock.elapsedTime;
     const state = getSeraraState(t);
     const presence = getSeraraPresence(pointer);
-    const heat = state.tension * 0.56 + state.fall;
+    const heat = state.tension * 0.56 + state.fall + getSeraraBurst() * 0.7;
 
     material.uniforms.uTime.value = t;
     material.uniforms.uHeat.value = heat;
@@ -501,7 +505,8 @@ function FloorFissureField() {
     const presence = getSeraraPresence(pointer);
 
     material.uniforms.uTime.value = t;
-    material.uniforms.uHeat.value = state.tension * 0.58 + state.fall;
+    material.uniforms.uHeat.value =
+      state.tension * 0.58 + state.fall + getSeraraBurst() * 0.78;
     material.uniforms.uPulse.value = getSeraraPulse(t, state);
     material.uniforms.uPresence.value = presence;
   });
@@ -522,12 +527,14 @@ function VolumetricShafts() {
     const t = clock.elapsedTime;
     const state = getSeraraState(t);
     const presence = getSeraraPresence(pointer);
+    const burst = getSeraraBurst();
     const target =
       0.018 +
       state.grace * 0.014 +
       state.tension * 0.026 +
       presence * 0.012 -
-      state.fall * 0.008;
+      state.fall * 0.008 +
+      burst * 0.035;
 
     for (const material of [leftRef.current, rightRef.current]) {
       if (!material) continue;
