@@ -525,3 +525,17 @@ Then continue toward:
 - deeper web/physical experiments
 
 without losing the canonical SERARA identity.
+
+
+---
+
+## VERCEL RETRY — 2026-09-22 06:37 EEST
+
+A fresh Git-triggered preview deployment was requested after the cinematic responsiveness pass.
+The runtime code remains at the validated state introduced through:
+- `39891892375938c4d7b265e54fa9e5d5effe7d60`
+- `5d848c180f3ef70861b1add751aaf916f81a6713`
+- `cf03836c1b700dd97f972de838e924ca66dc2ba6`
+- `e697397483a6e13e8795ccbb82bef21dcc6c7382`
+
+This docs-only commit exists to request a fresh Vercel preview after the prior build-rate limit.
