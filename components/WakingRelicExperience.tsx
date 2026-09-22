@@ -119,21 +119,22 @@ function Relic({
   const activation = useRef(0);
   const { pointer } = useThree();
 
-  const baseMaterial = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
+  const materials = useRef<{
+    base: THREE.MeshStandardMaterial;
+    wire: THREE.MeshBasicMaterial;
+    ghost: THREE.MeshBasicMaterial;
+  } | null>(null);
+
+  if (!materials.current) {
+    materials.current = {
+      base: new THREE.MeshStandardMaterial({
         color: new THREE.Color("#101113"),
         roughness: 0.92,
         metalness: 0.04,
         emissive: new THREE.Color("#0a0b0d"),
         emissiveIntensity: 0.08,
       }),
-    [],
-  );
-
-  const wireMaterial = useMemo(
-    () =>
-      new THREE.MeshBasicMaterial({
+      wire: new THREE.MeshBasicMaterial({
         color: new THREE.Color("#d9dde0"),
         wireframe: true,
         transparent: true,
@@ -142,12 +143,7 @@ function Relic({
         blending: THREE.AdditiveBlending,
         toneMapped: false,
       }),
-    [],
-  );
-
-  const ghostMaterial = useMemo(
-    () =>
-      new THREE.MeshBasicMaterial({
+      ghost: new THREE.MeshBasicMaterial({
         color: new THREE.Color("#75818d"),
         wireframe: true,
         transparent: true,
@@ -156,17 +152,19 @@ function Relic({
         blending: THREE.AdditiveBlending,
         toneMapped: false,
       }),
-    [],
-  );
+    };
+  }
 
   useEffect(() => {
-    attachWireframeTreatment(relic, baseMaterial, wireMaterial, ghostMaterial);
+    const current = materials.current;
+    if (!current) return;
+    attachWireframeTreatment(relic, current.base, current.wire, current.ghost);
     return () => {
-      baseMaterial.dispose();
-      wireMaterial.dispose();
-      ghostMaterial.dispose();
+      current.base.dispose();
+      current.wire.dispose();
+      current.ghost.dispose();
     };
-  }, [baseMaterial, ghostMaterial, relic, wireMaterial]);
+  }, [relic]);
 
   useEffect(() => {
     if (state === "awakening") activation.current = performance.now();
@@ -176,6 +174,9 @@ function Relic({
     if (!group.current) return;
 
     const t = clock.getElapsedTime();
+    const currentMaterials = materials.current;
+    if (!currentMaterials) return;
+    const { base: baseMaterial, wire: wireMaterial, ghost: ghostMaterial } = currentMaterials;
     const energy = audioEnergy.current;
     const progress = scroll.current;
     const aware =
@@ -316,6 +317,11 @@ function CameraRig({
   state: RelicState;
 }) {
   const { camera, pointer } = useThree();
+  const cameraRef = useRef(camera);
+
+  useEffect(() => {
+    cameraRef.current = camera;
+  }, [camera]);
 
   useFrame(({ clock }, delta) => {
     const p = scroll.current;
@@ -327,11 +333,12 @@ function CameraRig({
     const targetX = -0.08 + p * 0.17 + pointer.x * 0.025;
     const targetY = 0.19 + p * 0.07 + Math.sin(t * 0.09) * 0.009;
 
-    camera.position.x = THREE.MathUtils.damp(camera.position.x, targetX, 2.1, delta);
-    camera.position.y = THREE.MathUtils.damp(camera.position.y, targetY, 2.1, delta);
-    camera.position.z = THREE.MathUtils.damp(camera.position.z, targetZ, 2.1, delta);
+    const activeCamera = cameraRef.current;
+    activeCamera.position.x = THREE.MathUtils.damp(activeCamera.position.x, targetX, 2.1, delta);
+    activeCamera.position.y = THREE.MathUtils.damp(activeCamera.position.y, targetY, 2.1, delta);
+    activeCamera.position.z = THREE.MathUtils.damp(activeCamera.position.z, targetZ, 2.1, delta);
 
-    camera.lookAt(
+    activeCamera.lookAt(
       THREE.MathUtils.lerp(0, 0.06, p),
       THREE.MathUtils.lerp(0.02, 0.15, p),
       0,
@@ -621,9 +628,10 @@ export default function WakingRelicExperience() {
   }, [armIdle, entered, playSfx, playVoice]);
 
   useEffect(() => {
+    const sfxSet = activeSfx.current;
     return () => {
       voice.current?.pause();
-      for (const clip of activeSfx.current) clip.pause();
+      for (const clip of sfxSet) clip.pause();
 
       const runtime = audioRuntime.current;
       if (runtime) {
@@ -658,8 +666,14 @@ export default function WakingRelicExperience() {
       runtime.master.gain.setTargetAtTime(next ? 0 : 0.72, now, 0.08);
     }
 
-    if (voice.current) voice.current.muted = next;
-    for (const clip of activeSfx.current) clip.muted = next;
+    if (voice.current) {
+      if (next) voice.current.pause();
+      else voice.current.muted = false;
+    }
+    if (next) {
+      for (const clip of activeSfx.current) clip.pause();
+      activeSfx.current.clear();
+    }
   };
 
   const onSense = (hovered: boolean) => {
