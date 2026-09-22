@@ -1,0 +1,43 @@
+name: SERARA prebuilt Vercel preview
+
+on:
+  push:
+    branches:
+      - preview/serara-awakening-once-20260922
+    paths:
+      - ".github/workflows/serara-vercel-prebuilt-preview.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy-prebuilt:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: team_yldGt68LygoeKjcxVBQMPE6H
+      VERCEL_PROJECT_ID: prj_znBmQLzLmDJrN8owmd56KDS9zJb5
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Verify Vercel token
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::VERCEL_TOKEN secret is missing"
+            exit 78
+          fi
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Pull Vercel project settings
+        run: npx --yes vercel@latest pull --yes --environment=preview --token="$VERCEL_TOKEN"
+
+      - name: Build prebuilt output
+        run: npx --yes vercel@latest build --token="$VERCEL_TOKEN"
+
+      - name: Deploy prebuilt output
+        run: npx --yes vercel@latest deploy --prebuilt --token="$VERCEL_TOKEN"
