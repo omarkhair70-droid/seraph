@@ -16,7 +16,7 @@ function seeded(index: number, salt = 0) {
 }
 
 
-const RITUAL_VERTEX_SHADER = \`
+const RITUAL_VERTEX_SHADER = `
   varying vec2 vUv;
   uniform float uTime;
   uniform float uHeat;
@@ -36,9 +36,9 @@ const RITUAL_VERTEX_SHADER = \`
 
     gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
   }
-\`;
+`;
 
-const RITUAL_FRAGMENT_SHADER = \`
+const RITUAL_FRAGMENT_SHADER = `
   varying vec2 vUv;
   uniform float uTime;
   uniform float uHeat;
@@ -72,18 +72,18 @@ const RITUAL_FRAGMENT_SHADER = \`
 
     gl_FragColor = vec4(color, alpha);
   }
-\`;
+`;
 
-const FLOOR_VERTEX_SHADER = \`
+const FLOOR_VERTEX_SHADER = `
   varying vec2 vUv;
 
   void main() {
     vUv = uv;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
-\`;
+`;
 
-const FLOOR_FRAGMENT_SHADER = \`
+const FLOOR_FRAGMENT_SHADER = `
   varying vec2 vUv;
   uniform float uTime;
   uniform float uHeat;
@@ -121,7 +121,7 @@ const FLOOR_FRAGMENT_SHADER = \`
 
     gl_FragColor = vec4(ember, flare);
   }
-\`;
+`;
 
 function EmberField() {
   const count = 190;
