@@ -167,10 +167,95 @@ function makeRoomGlitch() {
   writeWav("room_glitch.wav", l, r);
 }
 
+
+function makeScream() {
+  const dur = 4.8;
+  const n = Math.floor(SR * dur);
+  const rand = rngFactory(911);
+  const l = new Float32Array(n);
+  const r = new Float32Array(n);
+  const breath = smoothNoise(n, 34, rand);
+  let phaseL = 0;
+  let phaseR = 0;
+
+  const smoothstep = (a, b, x) => {
+    const p = Math.max(0, Math.min(1, (x - a) / (b - a)));
+    return p * p * (3 - 2 * p);
+  };
+
+  for (let i = 0; i < n; i++) {
+    const t = i / SR;
+    const p = t / dur;
+    const attack = smoothstep(0, 0.08, p);
+    const release = 1 - smoothstep(0.78, 1, p);
+    const env = attack * release;
+
+    const climb = smoothstep(0.02, 0.58, p);
+    const collapse = smoothstep(0.66, 0.98, p);
+    const fundamental =
+      245 +
+      430 * climb -
+      150 * collapse +
+      18 * Math.sin(2 * Math.PI * 5.7 * t) +
+      7 * Math.sin(2 * Math.PI * 11.3 * t);
+
+    phaseL += (2 * Math.PI * fundamental) / SR;
+    phaseR += (2 * Math.PI * fundamental * 1.0021) / SR;
+
+    let voiceL = 0;
+    let voiceR = 0;
+    const formants = [
+      [860, 0.95, 500],
+      [2250, 0.72, 800],
+      [3350, 0.38, 1000],
+    ];
+
+    for (let h = 1; h <= 22; h++) {
+      const hf = fundamental * h;
+      let weight = 0.025 / Math.pow(h, 0.58);
+      for (const [center, gain, width] of formants) {
+        const d = (hf - center) / width;
+        weight += (gain * Math.exp(-d * d)) / (h + 1.5);
+      }
+      voiceL += weight * Math.sin(phaseL * h + h * 0.17);
+      voiceR += weight * Math.sin(phaseR * h + h * 0.21);
+    }
+
+    const raspGate =
+      0.35 +
+      0.65 * Math.pow(Math.max(0, Math.sin(2 * Math.PI * (27 + 8 * p) * t)), 2);
+    const air = breath[i] * (0.34 + 0.28 * climb) * raspGate;
+
+    const sub =
+      0.12 *
+      Math.sin(2 * Math.PI * (46 + 7 * Math.sin(2 * Math.PI * 0.4 * t)) * t) *
+      Math.exp(-Math.pow((p - 0.55) / 0.34, 2));
+
+    const crack =
+      0.2 *
+      Math.exp(-Math.pow((t - 3.05) / 0.08, 2)) *
+      (Math.sin(2 * Math.PI * 1400 * t) + 0.45 * Math.sin(2 * Math.PI * 1980 * t));
+
+    const driveL = Math.tanh((voiceL + air + sub + crack) * 2.3) * env;
+    const driveR = Math.tanh((voiceR + air * 0.96 + sub + crack * 0.92) * 2.3) * env;
+
+    const spectralTail =
+      (0.035 * Math.sin(2 * Math.PI * 612 * t) +
+        0.026 * Math.sin(2 * Math.PI * 1009 * t + 0.4)) *
+      Math.exp(-Math.max(0, t - 3.4) * 1.7);
+
+    l[i] = 0.78 * driveL + spectralTail;
+    r[i] = 0.78 * driveR + spectralTail * 0.94;
+  }
+
+  writeWav("serara_scream.wav", l, r);
+}
+
 makeAwakening();
 makeRiser();
 makePresenceBed();
 makeRoomGlitch();
+makeScream();
 
 fs.writeFileSync(
   path.join(OUT, "manifest.json"),
@@ -182,7 +267,8 @@ fs.writeFileSync(
       "awakening_impact.wav",
       "threshold_riser.wav",
       "presence_bed.wav",
-      "room_glitch.wav"
+      "room_glitch.wav",
+      "serara_scream.wav"
     ]
   }, null, 2)
 );
