@@ -22,6 +22,15 @@ type RelicState =
   | "calling"
   | "fading";
 
+type CinematicPhase =
+  | "bound"
+  | "notice"
+  | "release"
+  | "rise"
+  | "melt"
+  | "scream"
+  | "aftermath";
+
 type VoiceKey = "wake" | "close" | "silence" | "opens" | "seam" | "remain";
 
 type AudioEnergy = {
@@ -67,6 +76,18 @@ const SFX = {
   glitch: "/assets/waking-relic/audio/cinematic/room_glitch.wav",
 } as const;
 
+const CINEMATIC_TIMELINE: Array<{
+  at: number;
+  phase: CinematicPhase;
+}> = [
+  { at: 0, phase: "notice" },
+  { at: 1900, phase: "release" },
+  { at: 3800, phase: "rise" },
+  { at: 5900, phase: "melt" },
+  { at: 7900, phase: "scream" },
+  { at: 9200, phase: "aftermath" },
+];
+
 function attachWireframeTreatment(
   root: THREE.Object3D,
   baseMaterial: THREE.MeshStandardMaterial,
@@ -102,12 +123,14 @@ function attachWireframeTreatment(
 
 function Relic({
   state,
+  phase,
   scroll,
   audioEnergy,
   onSense,
   onActivate,
 }: {
   state: RelicState;
+  phase: CinematicPhase;
   scroll: MutableRefObject<number>;
   audioEnergy: MutableRefObject<AudioEnergy>;
   onSense: (hovered: boolean) => void;
@@ -191,12 +214,29 @@ function Relic({
         ? Math.sin(elapsed * 0.115) * (1 - elapsed / 920)
         : 0;
 
+    const phaseEnergy =
+      phase === "notice"
+        ? 0.12
+        : phase === "release"
+          ? 0.28
+          : phase === "rise"
+            ? 0.42
+            : phase === "melt"
+              ? 0.66
+              : phase === "scream"
+                ? 1
+                : phase === "aftermath"
+                  ? 0.22
+                  : 0;
+
     const scrollYaw = THREE.MathUtils.lerp(1.48, 1.62, Math.min(progress * 1.2, 1));
     const targetYaw =
       scrollYaw +
-      pointer.x * 0.035 +
+      pointer.x * (phase === "notice" || phase === "aftermath" ? 0.06 : 0.035) +
       Math.sin(t * 0.11) * 0.012 +
-      jolt * 0.012;
+      jolt * 0.012 +
+      (phase === "notice" ? -0.08 : 0) +
+      (phase === "scream" ? Math.sin(t * 22) * 0.016 : 0);
 
     group.current.rotation.y = THREE.MathUtils.damp(
       group.current.rotation.y,
@@ -227,12 +267,32 @@ function Relic({
       Math.abs(jolt) * 0.004;
 
     const scrollScale = THREE.MathUtils.lerp(0.76, 0.82, Math.min(progress, 0.8));
-    group.current.scale.setScalar(scrollScale * breathe);
+    const phaseScale =
+      phase === "release"
+        ? 0.996
+        : phase === "rise"
+          ? 1.015
+          : phase === "melt"
+            ? 1.006 + Math.sin(t * 3.1) * 0.008
+            : phase === "scream"
+              ? 1.022 + Math.sin(t * 28) * 0.008
+              : 1;
+    group.current.scale.setScalar(scrollScale * breathe * phaseScale);
+
+    const releaseLift =
+      phase === "release"
+        ? 0.012
+        : phase === "rise"
+          ? 0.045
+          : phase === "melt" || phase === "scream" || phase === "aftermath"
+            ? 0.065
+            : 0;
 
     group.current.position.y =
       -0.1 +
       Math.sin(t * 0.27) * 0.007 +
       progress * 0.025 +
+      releaseLift +
       jolt * 0.012;
 
     group.current.position.x = pointer.x * 0.01 + jolt * 0.004;
@@ -249,6 +309,7 @@ function Relic({
     const targetOpacity = THREE.MathUtils.clamp(
       0.18 +
         stateBoost +
+        phaseEnergy * 0.3 +
         energy.mid * 0.22 +
         energy.high * 0.11 +
         Math.max(0, jolt) * 0.22,
@@ -265,7 +326,10 @@ function Relic({
 
     ghostMaterial.opacity = THREE.MathUtils.damp(
       ghostMaterial.opacity,
-      0.035 + energy.low * 0.12 + (state === "awakening" ? 0.11 : 0),
+      0.035 +
+        energy.low * 0.12 +
+        phaseEnergy * 0.11 +
+        (state === "awakening" ? 0.11 : 0),
       3.5,
       delta,
     );
@@ -283,7 +347,10 @@ function Relic({
 
     baseMaterial.emissiveIntensity = THREE.MathUtils.damp(
       baseMaterial.emissiveIntensity,
-      0.025 + energy.low * 0.16 + (state === "awakening" ? 0.13 : 0),
+      0.025 +
+        energy.low * 0.16 +
+        phaseEnergy * 0.17 +
+        (state === "awakening" ? 0.13 : 0),
       3.5,
       delta,
     );
@@ -350,12 +417,14 @@ function CameraRig({
 
 function RelicStage({
   state,
+  phase,
   scroll,
   audioEnergy,
   onSense,
   onActivate,
 }: {
   state: RelicState;
+  phase: CinematicPhase;
   scroll: MutableRefObject<number>;
   audioEnergy: MutableRefObject<AudioEnergy>;
   onSense: (hovered: boolean) => void;
@@ -402,6 +471,7 @@ function RelicStage({
       <Suspense fallback={null}>
         <Relic
           state={state}
+          phase={phase}
           scroll={scroll}
           audioEnergy={audioEnergy}
           onSense={onSense}
@@ -425,6 +495,7 @@ function RelicStage({
 export default function WakingRelicExperience() {
   const [entered, setEntered] = useState(false);
   const [state, setState] = useState<RelicState>("dormant");
+  const [phase, setPhase] = useState<CinematicPhase>("bound");
   const [caption, setCaption] = useState("");
   const [muted, setMuted] = useState(false);
 
@@ -436,6 +507,7 @@ export default function WakingRelicExperience() {
   const spoken = useRef<Set<string>>(new Set());
   const thresholdPlayed = useRef(false);
   const glitchPlayed = useRef(false);
+  const cinematicTimers = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   const scroll = useRef(0);
   const energy = useRef<AudioEnergy>({ low: 0, mid: 0, high: 0, overall: 0 });
 
@@ -633,6 +705,9 @@ export default function WakingRelicExperience() {
       voice.current?.pause();
       for (const clip of sfxSet) clip.pause();
 
+      for (const timer of cinematicTimers.current) clearTimeout(timer);
+      cinematicTimers.current = [];
+
       const runtime = audioRuntime.current;
       if (runtime) {
         cancelAnimationFrame(runtime.animationFrame);
@@ -698,12 +773,36 @@ export default function WakingRelicExperience() {
     if (!entered) return;
     if (hoverTimer.current) clearTimeout(hoverTimer.current);
 
+    for (const timer of cinematicTimers.current) clearTimeout(timer);
+    cinematicTimers.current = [];
+
     setState("awakening");
+    setPhase("notice");
     playSfx(SFX.awakening, 0.82);
     playVoice("opens");
 
-    window.setTimeout(() => setState("calling"), 980);
-    window.setTimeout(() => setState("watching"), 4100);
+    for (const cue of CINEMATIC_TIMELINE.slice(1)) {
+      const timer = window.setTimeout(() => {
+        setPhase(cue.phase);
+
+        if (cue.phase === "release") {
+          playSfx(SFX.glitch, 0.28);
+        }
+
+        if (cue.phase === "melt") {
+          playSfx(SFX.threshold, 0.24);
+        }
+
+        if (cue.phase === "scream") {
+          playSfx(SFX.awakening, 0.58);
+        }
+
+        if (cue.phase === "aftermath") {
+          setState("watching");
+        }
+      }, cue.at);
+      cinematicTimers.current.push(timer);
+    }
   };
 
   const onPointerMove = (event: React.PointerEvent<HTMLElement>) => {
@@ -725,12 +824,14 @@ export default function WakingRelicExperience() {
     <main
       className={styles.experience}
       data-state={state}
+      data-phase={phase}
       data-entered={entered ? "true" : "false"}
       onPointerMove={onPointerMove}
     >
       <div className={styles.canvasShell} aria-hidden={!entered}>
         <RelicStage
           state={state}
+          phase={phase}
           scroll={scroll}
           audioEnergy={energy}
           onSense={onSense}
