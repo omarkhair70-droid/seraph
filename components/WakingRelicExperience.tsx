@@ -462,10 +462,37 @@ function Relic({
   const relic = useMemo(() => scene.clone(true), [scene]);
   const group = useRef<THREE.Group>(null);
   const activation = useRef(0);
-  const phaseStarted = useRef(performance.now());
+  const phaseStarted = useRef(0);
+  const hooksRef = useRef<RelicHooks>({
+    head: null,
+    eyes: [],
+    pedestalChunks: [],
+    morphMeshes: [],
+  });
   const { pointer } = useThree();
   const bounds = useMemo(() => new THREE.Box3().setFromObject(relic), [relic]);
-  const hooks = useMemo(() => resolveRelicHooks(relic), [relic]);
+  const hookPresence = useMemo(() => {
+    let hasEyes = false;
+    let hasPedestalChunks = false;
+    relic.traverse((object) => {
+      const name = object.name.toUpperCase();
+      if (
+        name === "SERARA_EYE_L" ||
+        name === "SERARA_EYE_R" ||
+        name.endsWith("_EYE_L") ||
+        name.endsWith("_EYE_R")
+      ) {
+        hasEyes = true;
+      }
+      if (
+        name.startsWith("SERARA_PEDESTAL_CHUNK_") ||
+        name.startsWith("PEDESTAL_CHUNK_")
+      ) {
+        hasPedestalChunks = true;
+      }
+    });
+    return { hasEyes, hasPedestalChunks };
+  }, [relic]);
   const deformation = useRef<RelicDeformationUniforms>({
     time: { value: 0 },
     melt: { value: 0 },
@@ -531,11 +558,17 @@ function Relic({
     installRelicDeformation(current.ghost, deformation.current);
     attachWireframeTreatment(relic, current.base, current.wire, current.ghost);
 
-    if (hooks.head) {
-      hookDefaults.current.headRotation = hooks.head.rotation.clone();
+    const resolvedHooks = resolveRelicHooks(relic);
+    hooksRef.current = resolvedHooks;
+
+    if (resolvedHooks.head) {
+      hookDefaults.current.headRotation = resolvedHooks.head.rotation.clone();
     }
     hookDefaults.current.chunkPositions = new Map(
-      hooks.pedestalChunks.map((chunk) => [chunk.uuid, chunk.position.clone()]),
+      resolvedHooks.pedestalChunks.map((chunk) => [
+        chunk.uuid,
+        chunk.position.clone(),
+      ]),
     );
 
     return () => {
@@ -543,7 +576,7 @@ function Relic({
       current.wire.dispose();
       current.ghost.dispose();
     };
-  }, [bounds, hooks, relic]);
+  }, [bounds, relic]);
 
   useEffect(() => {
     if (state === "awakening") activation.current = performance.now();
@@ -559,6 +592,7 @@ function Relic({
     const t = clock.getElapsedTime();
     const currentMaterials = materials.current;
     if (!currentMaterials) return;
+    const hooks = hooksRef.current;
     const { base: baseMaterial, wire: wireMaterial, ghost: ghostMaterial } = currentMaterials;
     const energy = audioEnergy.current;
     const progress = scroll.current;
@@ -797,8 +831,8 @@ function Relic({
         onActivate();
       }}
     >
-      {hooks.eyes.length === 0 && <FallbackGaze phase={phase} bounds={bounds} />}
-      {hooks.pedestalChunks.length === 0 && (
+      {!hookPresence.hasEyes && <FallbackGaze phase={phase} bounds={bounds} />}
+      {!hookPresence.hasPedestalChunks && (
         <PedestalFragments phase={phase} bounds={bounds} />
       )}
       <primitive object={relic} />
