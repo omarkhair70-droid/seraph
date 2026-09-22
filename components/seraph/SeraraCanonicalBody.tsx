@@ -70,6 +70,17 @@ type FingerBone = {
   phase: number;
 };
 
+type CanonicalMutableRuntime = {
+  bones: RigBones;
+  bind: Partial<Record<BoneKey, BoneBind>>;
+  materialSignals: ReturnType<typeof createSeraraMaterialSignals>;
+  buckets: MaterialBuckets;
+  morphMeshes: THREE.Mesh[];
+  fingerBones: FingerBone[];
+};
+
+const runtimeByScene = new WeakMap<THREE.Object3D, CanonicalMutableRuntime>();
+
 const POSTURES: Record<SeraraPosture, PostureOffsets> = {
   grace: {
     hips: [-0.012, 0, 0],
@@ -345,21 +356,22 @@ function buildCanonicalRuntime(scene: THREE.Object3D) {
       });
     });
 
-    return {
-      scene: cloned,
-      scale,
-      offset: new THREE.Vector3(-center.x, -center.y, -center.z),
+    runtimeByScene.set(cloned, {
       bones,
       bind,
       materialSignals,
       buckets,
       morphMeshes,
       fingerBones,
+    });
+
+    return {
+      scene: cloned,
+      scale,
+      offset: new THREE.Vector3(-center.x, -center.y, -center.z),
     };
 
 }
-
-type CanonicalRuntime = ReturnType<typeof buildCanonicalRuntime>;
 
 export default function SeraraCanonicalBody() {
   const motionRef = useRef<THREE.Group>(null);
@@ -371,16 +383,6 @@ export default function SeraraCanonicalBody() {
   const { scene } = useGLTF(MODEL_URL);
 
   const fitted = useMemo(() => buildCanonicalRuntime(scene), [scene]);
-  const fittedRef = useRef<CanonicalRuntime | null>(null);
-
-  useEffect(() => {
-    fittedRef.current = fitted;
-    return () => {
-      if (fittedRef.current === fitted) {
-        fittedRef.current = null;
-      }
-    };
-  }, [fitted]);
 
   useEffect(() => {
     const unlock = () => {
@@ -401,7 +403,7 @@ export default function SeraraCanonicalBody() {
 
   useFrame(({ clock, pointer }, delta) => {
     const motion = motionRef.current;
-    const current = fittedRef.current;
+    const current = runtimeByScene.get(fitted.scene);
     if (!motion || !current) return;
 
     const t = clock.elapsedTime;
