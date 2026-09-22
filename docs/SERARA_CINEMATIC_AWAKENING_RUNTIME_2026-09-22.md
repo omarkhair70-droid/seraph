@@ -71,7 +71,7 @@ Current reusable cues:
 - threshold riser
 - presence bed
 
-The final scream vocal is intentionally not locked yet. It should be produced after the final face / motion timing is fixed so the performance can be cut to picture.
+The branch now includes an original deterministic synthetic scream cue (`serara_scream.wav`) generated at build time. It is a timing/energy reference and can be replaced later by a performed vocal without changing the runtime contract.
 
 ## Current implementation
 
@@ -85,6 +85,11 @@ React Three Fiber receives the same phase and drives generic:
 - wireframe intensity
 - ghost wireframe intensity
 - emissive energy
+- fallback gaze glint when named eye nodes are absent
+- fallback procedural pedestal fragments when named pedestal chunks are absent
+- upper-body/head shader deformation for melt and scream
+
+When the final asset exposes the documented node/morph names, the runtime automatically prefers those hooks for head motion, pedestal chunk release and morph-target deformation.
 
 CSS drives phase-specific:
 - halo
