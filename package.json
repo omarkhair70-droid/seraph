@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "predev": "node tools/generate-serara-sound.mjs",
+    "prebuild": "node tools/generate-serara-sound.mjs"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "1.0.1",
