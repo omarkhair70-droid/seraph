@@ -1,0 +1,70 @@
+name: SERARA Waking Relic Assets
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - experience/serara-waking-relic-20260922
+    paths:
+      - 'tools/serara3d/build_waking_relic_assets.py'
+      - '.github/workflows/serara-waking-relic-assets.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-relic-assets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout experience branch
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Install free reconstruction and sound stack
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y espeak sox ffmpeg
+          python -m pip install --upgrade pip
+          python -m pip install numpy pillow opencv-python-headless scipy scikit-image trimesh
+
+      - name: Fetch canonical SERARA views
+        run: |
+          mkdir -p tools/serara3d/relic_refs
+          curl -fL --retry 3 "https://at.adobe.com/c974S3B9yHNvAsil" -o tools/serara3d/relic_refs/front.png
+          curl -fL --retry 3 "https://at.adobe.com/9nM4ny7AEdTDnlVv" -o tools/serara3d/relic_refs/three_quarter.png
+          curl -fL --retry 3 "https://at.adobe.com/UN1XvDEnywfnY4f6" -o tools/serara3d/relic_refs/side.png
+          curl -fL --retry 3 "https://at.adobe.com/cvvOWMataXbPRjqZ" -o tools/serara3d/relic_refs/back.png
+          file tools/serara3d/relic_refs/*
+
+      - name: Build relic GLB and ritual audio
+        run: python tools/serara3d/build_waking_relic_assets.py
+
+      - name: Verify assets
+        run: |
+          test -s public/assets/waking-relic/SERARA_RELIC.glb
+          test -s public/assets/waking-relic/audio/serara_ritual_ambient.mp3
+          test -s public/assets/waking-relic/audio/voice_wake.mp3
+          find public/assets/waking-relic -type f -printf '%p %s bytes\n' | sort
+          cat public/assets/waking-relic/SERARA_RELIC_REPORT.json
+
+      - name: Commit generated experience assets
+        run: |
+          git config user.name "SERARA Asset Builder"
+          git config user.email "actions@users.noreply.github.com"
+          git add public/assets/waking-relic
+          if git diff --cached --quiet; then
+            echo "No asset changes to commit."
+          else
+            git commit -m "Generate SERARA Waking Relic model and audio"
+            git push origin HEAD:experience/serara-waking-relic-20260922
+          fi
+
+      - name: Upload relic bundle
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: SERARA_WAKING_RELIC_ASSETS
+          path: public/assets/waking-relic/
+          if-no-files-found: error
+          retention-days: 30
