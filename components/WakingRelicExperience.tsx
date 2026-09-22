@@ -1,5 +1,7 @@
 "use client";
 
+// SERARA preview build pulse: isolated from the active Phase 1 branch.
+
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, useGLTF } from "@react-three/drei";
 import {
