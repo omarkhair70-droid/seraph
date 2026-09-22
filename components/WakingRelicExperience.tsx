@@ -167,7 +167,7 @@ export default function WakingRelicExperience() {
   const spoken = useRef<Set<string>>(new Set());
 
   const playVoice = useCallback((key: VoiceKey, once = false) => {
-    if (!entered || muted) return;
+    if (muted) return;
     if (once && spoken.current.has(key)) return;
     spoken.current.add(key);
 
