@@ -26,7 +26,7 @@ function LivingCamera() {
 
     camera.position.x = THREE.MathUtils.lerp(
       camera.position.x,
-      pointer.x * 0.075 * presence,
+      pointer.x * 0.105 * presence,
       alpha,
     );
 
@@ -38,7 +38,7 @@ function LivingCamera() {
 
     camera.position.z = THREE.MathUtils.lerp(
       camera.position.z,
-      7.45 - state.tension * 0.1 - state.fall * 0.2 - presence * 0.055,
+      7.42 - state.tension * 0.12 - state.fall * 0.22 - presence * 0.085,
       alpha,
     );
 
@@ -67,6 +67,7 @@ function ReactiveChamberField() {
   const crownRef = useRef<THREE.SpotLight>(null);
   const bloodRimRef = useRef<THREE.PointLight>(null);
   const innerRef = useRef<THREE.PointLight>(null);
+  const faceRef = useRef<THREE.PointLight>(null);
   const floorMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
 
   useFrame(({ clock, pointer }, delta) => {
@@ -130,6 +131,32 @@ function ReactiveChamberField() {
         0.45 + Math.sin(t * 0.73) * 0.08;
     }
 
+    if (faceRef.current) {
+      const target =
+        2.2 +
+        state.grace * 0.7 +
+        state.tension * 1.4 +
+        state.fall * 0.5 +
+        presence * (1.8 + pulse * 1.6) +
+        burst * 3.2;
+
+      faceRef.current.intensity = THREE.MathUtils.lerp(
+        faceRef.current.intensity,
+        target,
+        Math.min(1, delta * 3.1),
+      );
+      faceRef.current.position.x = THREE.MathUtils.lerp(
+        faceRef.current.position.x,
+        pointer.x * presence * 0.18,
+        Math.min(1, delta * 2.2),
+      );
+      faceRef.current.position.y = THREE.MathUtils.lerp(
+        faceRef.current.position.y,
+        1.28 + pointer.y * presence * 0.055,
+        Math.min(1, delta * 1.9),
+      );
+    }
+
     if (floorMaterialRef.current) {
       const heat =
         state.tension * 0.12 +
@@ -153,7 +180,7 @@ function ReactiveChamberField() {
 
   return (
     <>
-      <ambientLight intensity={0.54} color="#978a80" />
+      <ambientLight intensity={0.62} color="#9e9187" />
 
       <spotLight
         ref={crownRef}
@@ -178,9 +205,18 @@ function ReactiveChamberField() {
         position={[0.15, 2.35, 3.6]}
         angle={0.5}
         penumbra={0.9}
-        intensity={16}
+        intensity={19}
         distance={7}
         color="#efe3d4"
+      />
+
+      <pointLight
+        ref={faceRef}
+        position={[0, 1.28, 2.15]}
+        intensity={2.2}
+        distance={3.3}
+        decay={2}
+        color="#f0b487"
       />
 
       <pointLight
