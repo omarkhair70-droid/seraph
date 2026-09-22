@@ -418,3 +418,59 @@
     transition: none;
   }
 }
+
+
+/* Cinematic awakening runtime. These states are intentionally model-agnostic:
+   the current GLB is only a stand-in until the final SERARA asset is swapped in. */
+.experience[data-phase="notice"] .halo {
+  opacity: .82;
+  transform: scale(1.015);
+}
+
+.experience[data-phase="release"] .scan {
+  opacity: .42;
+  animation-duration: .42s;
+}
+
+.experience[data-phase="release"] .vignette {
+  background:
+    radial-gradient(ellipse at center, transparent 31%, rgba(0,0,0,.19) 56%, rgba(0,0,0,.86) 100%);
+}
+
+.experience[data-phase="rise"] .halo {
+  opacity: .92;
+  transform: scale(1.04);
+}
+
+.experience[data-phase="melt"] .scan {
+  opacity: .58;
+  animation-duration: .28s;
+}
+
+.experience[data-phase="melt"] .grain {
+  opacity: .12;
+}
+
+.experience[data-phase="scream"] .halo {
+  opacity: 1;
+  transform: scale(1.11);
+}
+
+.experience[data-phase="scream"] .scan {
+  opacity: .78;
+  animation-duration: .11s;
+}
+
+.experience[data-phase="scream"] .grain {
+  opacity: .18;
+  animation-duration: .09s;
+}
+
+.experience[data-phase="aftermath"] .halo {
+  opacity: .54;
+  transform: scale(.985);
+}
+
+.experience[data-phase="aftermath"] .pointerField {
+  opacity: .48;
+}
