@@ -6,50 +6,42 @@ on:
     branches:
       - experience/serara-waking-relic-20260922
     paths:
-      - 'tools/serara3d/build_waking_relic_assets.py'
       - '.github/workflows/serara-waking-relic-assets.yml'
 
 permissions:
   contents: write
 
 jobs:
-  build-relic-assets:
+  install-relic-assets:
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 10
     steps:
       - name: Checkout experience branch
         uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
 
-      - name: Install free reconstruction and sound stack
+      - name: Install exact approved relic bundle
         run: |
-          sudo apt-get update
-          sudo apt-get install -y espeak sox ffmpeg
-          python -m pip install --upgrade pip
-          python -m pip install numpy pillow opencv-python-headless scipy scikit-image trimesh
+          rm -rf public/assets/waking-relic
+          mkdir -p public/assets/waking-relic
+          curl -fL --retry 3 "https://at.adobe.com/5R5ci1dBUZso32Ug" -o /tmp/SERARA_WAKING_RELIC_ASSETS.zip
+          unzip -q /tmp/SERARA_WAKING_RELIC_ASSETS.zip -d public/assets/waking-relic
 
-      - name: Fetch canonical SERARA views
-        run: |
-          mkdir -p tools/serara3d/relic_refs
-          curl -fL --retry 3 "https://at.adobe.com/c974S3B9yHNvAsil" -o tools/serara3d/relic_refs/front.png
-          curl -fL --retry 3 "https://at.adobe.com/9nM4ny7AEdTDnlVv" -o tools/serara3d/relic_refs/three_quarter.png
-          curl -fL --retry 3 "https://at.adobe.com/UN1XvDEnywfnY4f6" -o tools/serara3d/relic_refs/side.png
-          curl -fL --retry 3 "https://at.adobe.com/cvvOWMataXbPRjqZ" -o tools/serara3d/relic_refs/back.png
-          file tools/serara3d/relic_refs/*
-
-      - name: Build relic GLB and ritual audio
-        run: python tools/serara3d/build_waking_relic_assets.py
-
-      - name: Verify assets
+      - name: Verify exact experience assets
         run: |
           test -s public/assets/waking-relic/SERARA_RELIC.glb
           test -s public/assets/waking-relic/audio/serara_ritual_ambient.mp3
           test -s public/assets/waking-relic/audio/voice_wake.mp3
+          test -s public/assets/waking-relic/audio/voice_close.mp3
+          test -s public/assets/waking-relic/audio/voice_silence.mp3
+          test -s public/assets/waking-relic/audio/voice_opens.mp3
+          test -s public/assets/waking-relic/audio/voice_seam.mp3
+          test -s public/assets/waking-relic/audio/voice_remain.mp3
           find public/assets/waking-relic -type f -printf '%p %s bytes\n' | sort
           cat public/assets/waking-relic/SERARA_RELIC_REPORT.json
 
-      - name: Commit generated experience assets
+      - name: Commit approved relic assets
         run: |
           git config user.name "SERARA Asset Builder"
           git config user.email "actions@users.noreply.github.com"
@@ -57,7 +49,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No asset changes to commit."
           else
-            git commit -m "Generate SERARA Waking Relic model and audio"
+            git commit -m "Install SERARA Waking Relic model and ritual audio"
             git push origin HEAD:experience/serara-waking-relic-20260922
           fi
 
