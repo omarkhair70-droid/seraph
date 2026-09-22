@@ -125,7 +125,7 @@ function Relic({
     ghost: THREE.MeshBasicMaterial;
   } | null>(null);
 
-  if (!materials.current) {
+  if (materials.current == null) {
     materials.current = {
       base: new THREE.MeshStandardMaterial({
         color: new THREE.Color("#101113"),
