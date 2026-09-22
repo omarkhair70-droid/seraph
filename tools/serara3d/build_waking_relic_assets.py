@@ -53,8 +53,9 @@ def bottom_align(mask: np.ndarray) -> np.ndarray:
     top, bottom = ys.min(), ys.max()
     canvas = np.zeros_like(mask)
     height = bottom - top + 1
-    new_top = mask.shape[0] - height - 2
-    canvas[new_top : new_top + height] = mask[top : bottom + 1]
+    new_top = max(0, mask.shape[0] - height - 2)
+    usable = min(height, mask.shape[0] - new_top)
+    canvas[new_top : new_top + usable] = mask[top : top + usable]
     return canvas
 
 def row_bounds(mask: np.ndarray):
