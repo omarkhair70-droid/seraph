@@ -94,7 +94,7 @@ function Relic({ state, onSense, onActivate }: {
 
     const breathe = 1 + Math.sin(t * 0.62) * 0.003 + jolt * 0.006;
     group.current.scale.setScalar(1.22 * breathe);
-    group.current.position.y = -1.18 + Math.sin(t * 0.33) * 0.012 + jolt * 0.016;
+    group.current.position.y = -0.08 + Math.sin(t * 0.33) * 0.012 + jolt * 0.016;
     group.current.position.x = jolt * 0.006;
 
     material.emissiveIntensity = THREE.MathUtils.damp(
@@ -149,7 +149,7 @@ function RelicStage({ state, onSense, onActivate }: {
       <pointLight position={[-1.6, -0.4, -0.8]} intensity={0.75} color="#7b92ad" distance={4} />
       <Suspense fallback={null}>
         <Relic state={state} onSense={onSense} onActivate={onActivate} />
-        <ContactShadows position={[0, -1.2, 0]} opacity={0.46} scale={4.5} blur={2.6} far={3} resolution={512} />
+        <ContactShadows position={[0, -1.12, 0]} opacity={0.46} scale={4.5} blur={2.6} far={3} resolution={512} />
       </Suspense>
     </Canvas>
   );
