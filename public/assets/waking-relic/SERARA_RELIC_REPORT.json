@@ -1,18 +1,13 @@
 {
   "identity": "SERARA // THE WAKING RELIC",
-  "method": "intentional multiview silhouette relic reconstruction",
-  "vertices": 109318,
-  "triangles": 218632,
+  "source_direction": "accidental monolithic multiview visual hull preserved intentionally",
+  "vertices": 107098,
+  "triangles": 214192,
   "watertight": true,
   "extents_m": [
-    0.8862257192437748,
-    1.801101422633322,
-    0.8170067341796685
+    0.88622823,
+    1.80110146,
+    0.80987874
   ],
-  "source_views": [
-    "front",
-    "side",
-    "back",
-    "three_quarter"
-  ]
+  "orientation": "Y-up / centered for Three.js"
 }
