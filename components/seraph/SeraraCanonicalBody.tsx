@@ -9,6 +9,11 @@ import {
   createSeraraBodyMaterial,
   createSeraraMaterialSignals,
 } from "./serara-material";
+import {
+  getSeraraPresence,
+  getSeraraPulse,
+  getSeraraState,
+} from "./serara-state";
 
 const MODEL_URL = "/assets/serara-canonical.glb";
 const TARGET_HEIGHT = 3.65;
@@ -53,6 +58,14 @@ type MaterialBuckets = {
   eyes: THREE.MeshPhysicalMaterial[];
   cavity: THREE.MeshPhysicalMaterial[];
   signal: THREE.MeshPhysicalMaterial[];
+};
+
+type FingerBone = {
+  bone: THREE.Bone;
+  bind: THREE.Quaternion;
+  finger: "Thumb" | "Index" | "Middle" | "Ring" | "Little";
+  segment: 1 | 2 | 3;
+  phase: number;
 };
 
 const POSTURES: Record<SeraraPosture, PostureOffsets> = {
@@ -137,61 +150,6 @@ const MORPH_TARGETS = [
   "MOUTH_SEAM_OPEN",
 ] as const;
 
-function smoothStep(edge0: number, edge1: number, value: number) {
-  const x = THREE.MathUtils.clamp(
-    (value - edge0) / Math.max(0.0001, edge1 - edge0),
-    0,
-    1,
-  );
-
-  return x * x * (3 - 2 * x);
-}
-
-function stateFromCycle(time: number) {
-  if (typeof window !== "undefined") {
-    const forced = new URLSearchParams(window.location.search).get("pose");
-
-    if (forced === "grace") {
-      return { grace: 1, tension: 0, fall: 0 };
-    }
-
-    if (forced === "tension") {
-      return { grace: 0, tension: 1, fall: 0 };
-    }
-
-    if (forced === "fall") {
-      return { grace: 0, tension: 0, fall: 1 };
-    }
-  }
-
-  const cycle = time % 30;
-
-  if (cycle < 8) {
-    return { grace: 1, tension: 0, fall: 0 };
-  }
-
-  if (cycle < 12) {
-    const x = smoothStep(8, 12, cycle);
-    return { grace: 1 - x, tension: x, fall: 0 };
-  }
-
-  if (cycle < 18) {
-    return { grace: 0, tension: 1, fall: 0 };
-  }
-
-  if (cycle < 23) {
-    const x = smoothStep(18, 23, cycle);
-    return { grace: 0, tension: 1 - x, fall: x };
-  }
-
-  if (cycle < 27) {
-    return { grace: 0, tension: 0, fall: 1 };
-  }
-
-  const x = smoothStep(27, 30, cycle);
-  return { grace: x, tension: 0, fall: 1 - x };
-}
-
 function createCanonicalMaterial(
   source: THREE.Material,
   buckets: MaterialBuckets,
@@ -267,14 +225,21 @@ function createCanonicalMaterial(
 function updateMorphs(
   meshes: THREE.Mesh[],
   state: { grace: number; tension: number; fall: number },
+  presence: number,
   delta: number,
 ) {
   const targets: Record<(typeof MORPH_TARGETS)[number], number> = {
     FACE_RELAXED: state.grace * 0.28,
     FACE_TENSION: state.tension * 0.72,
     FACE_FALL: state.fall * 0.78,
-    EYES_NARROW: state.tension * 0.34 + state.fall * 0.64,
-    MOUTH_SEAM_OPEN: state.tension * 0.035 + state.fall * 0.13,
+    EYES_NARROW:
+      state.tension * 0.34 +
+      state.fall * 0.64 +
+      presence * state.grace * 0.055,
+    MOUTH_SEAM_OPEN:
+      state.tension * 0.035 +
+      state.fall * 0.13 +
+      presence * state.grace * 0.012,
   };
 
   const alpha = Math.min(1, delta * 2.4);
@@ -348,6 +313,7 @@ export default function SeraraCanonicalBody() {
     const scale = TARGET_HEIGHT / Math.max(size.y, 0.001);
     const bones: RigBones = {};
     const bind = {} as Partial<Record<BoneKey, BoneBind>>;
+    const fingerBones: FingerBone[] = [];
 
     (Object.keys(BONE_NAMES) as BoneKey[]).forEach((key) => {
       const object = cloned.getObjectByName(BONE_NAMES[key]);
@@ -360,6 +326,29 @@ export default function SeraraCanonicalBody() {
       };
     });
 
+    cloned.traverse((object) => {
+      if (!(object instanceof THREE.Bone)) return;
+
+      const match = object.name.match(
+        /^(Left|Right)Hand(Thumb|Index|Middle|Ring|Little)([123])$/,
+      );
+      if (!match) return;
+
+      const finger = match[2] as FingerBone["finger"];
+      const segment = Number(match[3]) as FingerBone["segment"];
+      const sidePhase = match[1] === "Left" ? 0 : Math.PI * 0.73;
+      const fingerPhase =
+        ["Thumb", "Index", "Middle", "Ring", "Little"].indexOf(finger) * 0.41;
+
+      fingerBones.push({
+        bone: object,
+        bind: object.quaternion.clone(),
+        finger,
+        segment,
+        phase: sidePhase + fingerPhase,
+      });
+    });
+
     return {
       scene: cloned,
       scale,
@@ -369,6 +358,7 @@ export default function SeraraCanonicalBody() {
       materialSignals,
       buckets,
       morphMeshes,
+      fingerBones,
     };
   }, [scene]);
 
@@ -377,12 +367,16 @@ export default function SeraraCanonicalBody() {
     if (!motion) return;
 
     const t = clock.elapsedTime;
-    const state = stateFromCycle(t);
+    const state = getSeraraState(t);
+    const presence = getSeraraPresence(pointer);
+    const pulse = getSeraraPulse(t, state);
 
     fitted.materialSignals.time.value = t;
     fitted.materialSignals.grace.value = state.grace;
     fitted.materialSignals.tension.value = state.tension;
     fitted.materialSignals.fall.value = state.fall;
+    fitted.materialSignals.presence.value = presence;
+    fitted.materialSignals.pulse.value = pulse;
 
     const stress = THREE.MathUtils.clamp(
       state.tension * 0.55 + state.fall,
@@ -408,7 +402,11 @@ export default function SeraraCanonicalBody() {
 
     for (const material of fitted.buckets.eyes) {
       material.emissiveIntensity =
-        0.16 + state.grace * 0.08 + state.tension * 0.18 + state.fall * 0.08;
+        0.13 +
+        state.grace * 0.07 +
+        state.tension * 0.18 +
+        state.fall * 0.08 +
+        presence * (0.16 + pulse * 0.14);
       material.roughness = THREE.MathUtils.lerp(
         0.23,
         0.34,
@@ -423,12 +421,20 @@ export default function SeraraCanonicalBody() {
 
     for (const material of fitted.buckets.signal) {
       material.emissiveIntensity =
-        0.34 + state.grace * 0.22 + state.tension * 0.58 + state.fall * 1.12;
+        0.3 +
+        state.grace * 0.18 +
+        state.tension * 0.56 +
+        state.fall * 1.1 +
+        presence * (0.22 + pulse * 0.42);
       material.opacity =
-        0.58 + state.grace * 0.12 + state.tension * 0.08 + state.fall * 0.16;
+        0.54 +
+        state.grace * 0.1 +
+        state.tension * 0.08 +
+        state.fall * 0.16 +
+        presence * 0.08;
     }
 
-    updateMorphs(fitted.morphMeshes, state, delta);
+    updateMorphs(fitted.morphMeshes, state, presence, delta);
 
     attentionTargetRef.current.set(pointer.x, pointer.y);
     attentionRef.current.lerp(
@@ -436,11 +442,14 @@ export default function SeraraCanonicalBody() {
       Math.min(1, delta * (0.66 + state.tension * 0.34)),
     );
 
+    const awareness = 0.28 + presence * 0.72;
     const attentionYaw =
-      attentionRef.current.x * (0.052 - state.fall * 0.016) +
+      attentionRef.current.x *
+        (0.052 - state.fall * 0.016) *
+        awareness +
       Math.sin(t * 0.17) * 0.007;
     const attentionPitch =
-      -attentionRef.current.y * 0.026 +
+      -attentionRef.current.y * 0.026 * awareness +
       Math.sin(t * 0.13 + 0.6) * 0.0045;
 
     const targetYaw =
@@ -519,6 +528,42 @@ export default function SeraraCanonicalBody() {
 
       bone.quaternion.copy(base.quaternion).multiply(posture);
       bone.scale.copy(base.scale);
+    }
+
+    for (const fingerBone of fitted.fingerBones) {
+      const segmentWeight =
+        fingerBone.segment === 1 ? 0.52 : fingerBone.segment === 2 ? 0.82 : 1;
+
+      const fingerBias =
+        fingerBone.finger === "Thumb"
+          ? 0.58
+          : fingerBone.finger === "Index"
+            ? 0.82
+            : fingerBone.finger === "Middle"
+              ? 1
+              : fingerBone.finger === "Ring"
+                ? 0.94
+                : 0.86;
+
+      const idleSearch =
+        Math.sin(t * 0.74 + fingerBone.phase) *
+        state.grace *
+        presence *
+        0.022;
+
+      const curl =
+        idleSearch +
+        segmentWeight *
+          fingerBias *
+          (state.tension * 0.16 + state.fall * 0.29 + presence * 0.018);
+
+      const curlQuaternion = new THREE.Quaternion().setFromEuler(
+        new THREE.Euler(curl, 0, 0, "XYZ"),
+      );
+
+      fingerBone.bone.quaternion
+        .copy(fingerBone.bind)
+        .multiply(curlQuaternion);
     }
   });
 
