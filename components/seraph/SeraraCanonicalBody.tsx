@@ -3,7 +3,7 @@
 import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { clone } from "three/examples/jsm/utils/SkeletonUtils.js";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import {
   createSeraraBodyMaterial,
@@ -14,6 +14,7 @@ import {
   getSeraraPulse,
   getSeraraState,
 } from "./serara-state";
+import { createSeraraSonic } from "./serara-sonic";
 
 const MODEL_URL = "/assets/serara-canonical.glb";
 const TARGET_HEIGHT = 3.65;
@@ -264,7 +265,14 @@ export default function SeraraCanonicalBody() {
   const motionRef = useRef<THREE.Group>(null);
   const attentionRef = useRef(new THREE.Vector2());
   const attentionTargetRef = useRef(new THREE.Vector2());
+  const presenceRef = useRef(0);
+  const impulseRef = useRef(0);
+  const sonic = useMemo(() => createSeraraSonic(), []);
   const { scene } = useGLTF(MODEL_URL);
+
+  useEffect(() => {
+    return () => sonic.dispose();
+  }, [sonic]);
 
   const fitted = useMemo(() => {
     const cloned = clone(scene);
@@ -368,8 +376,32 @@ export default function SeraraCanonicalBody() {
 
     const t = clock.elapsedTime;
     const state = getSeraraState(t);
-    const presence = getSeraraPresence(pointer);
-    const pulse = getSeraraPulse(t, state);
+
+    impulseRef.current = THREE.MathUtils.lerp(
+      impulseRef.current,
+      0,
+      Math.min(1, delta * 3.2),
+    );
+
+    const rawPresence = THREE.MathUtils.clamp(
+      getSeraraPresence(pointer) + impulseRef.current * 0.34,
+      0,
+      1,
+    );
+
+    presenceRef.current = THREE.MathUtils.lerp(
+      presenceRef.current,
+      rawPresence,
+      Math.min(1, delta * 2.8),
+    );
+
+    const presence = presenceRef.current;
+    const pulse = Math.max(
+      getSeraraPulse(t, state),
+      impulseRef.current * 0.92,
+    );
+
+    sonic.update(state, presence, pulse, pointer.x);
 
     fitted.materialSignals.time.value = t;
     fitted.materialSignals.grace.value = state.grace;
@@ -461,6 +493,29 @@ export default function SeraraCanonicalBody() {
       motion.rotation.y,
       targetYaw,
       Math.min(1, delta * 1.02),
+    );
+
+    motion.position.z = THREE.MathUtils.lerp(
+      motion.position.z,
+      -impulseRef.current * 0.055,
+      Math.min(1, delta * 7),
+    );
+
+    const compression = impulseRef.current * 0.008;
+    motion.scale.x = THREE.MathUtils.lerp(
+      motion.scale.x,
+      1 + compression * 0.42,
+      Math.min(1, delta * 7),
+    );
+    motion.scale.y = THREE.MathUtils.lerp(
+      motion.scale.y,
+      1 - compression,
+      Math.min(1, delta * 7),
+    );
+    motion.scale.z = THREE.MathUtils.lerp(
+      motion.scale.z,
+      1 + compression * 0.72,
+      Math.min(1, delta * 7),
     );
 
     motion.rotation.z = THREE.MathUtils.lerp(
@@ -555,7 +610,12 @@ export default function SeraraCanonicalBody() {
         idleSearch +
         segmentWeight *
           fingerBias *
-          (state.tension * 0.16 + state.fall * 0.29 + presence * 0.018);
+          (
+            state.tension * 0.16 +
+            state.fall * 0.29 +
+            presence * 0.018 +
+            impulseRef.current * 0.11
+          );
 
       const curlQuaternion = new THREE.Quaternion().setFromEuler(
         new THREE.Euler(curl, 0, 0, "XYZ"),
@@ -568,7 +628,15 @@ export default function SeraraCanonicalBody() {
   });
 
   return (
-    <group ref={motionRef}>
+    <group
+      ref={motionRef}
+      onPointerDown={(event) => {
+        event.stopPropagation();
+        impulseRef.current = 1;
+        void sonic.wake();
+        sonic.burst();
+      }}
+    >
       <group scale={fitted.scale}>
         <primitive object={fitted.scene} position={fitted.offset} />
       </group>
