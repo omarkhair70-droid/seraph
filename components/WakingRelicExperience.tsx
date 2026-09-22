@@ -74,6 +74,7 @@ const SFX = {
   threshold: "/assets/waking-relic/audio/cinematic/threshold_riser.wav",
   presence: "/assets/waking-relic/audio/cinematic/presence_bed.wav",
   glitch: "/assets/waking-relic/audio/cinematic/room_glitch.wav",
+  scream: "/assets/waking-relic/audio/cinematic/serara_scream.wav",
 } as const;
 
 const CINEMATIC_TIMELINE: Array<{
@@ -121,6 +122,327 @@ function attachWireframeTreatment(
   }
 }
 
+
+type RelicDeformationUniforms = {
+  time: { value: number };
+  melt: { value: number };
+  scream: { value: number };
+  meltStart: { value: number };
+  meltEnd: { value: number };
+};
+
+type RelicHooks = {
+  head: THREE.Object3D | null;
+  eyes: THREE.Object3D[];
+  pedestalChunks: THREE.Object3D[];
+  morphMeshes: THREE.Mesh[];
+};
+
+function installRelicDeformation(
+  material: THREE.Material,
+  uniforms: RelicDeformationUniforms,
+) {
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uRelicTime = uniforms.time;
+    shader.uniforms.uRelicMelt = uniforms.melt;
+    shader.uniforms.uRelicScream = uniforms.scream;
+    shader.uniforms.uRelicMeltStart = uniforms.meltStart;
+    shader.uniforms.uRelicMeltEnd = uniforms.meltEnd;
+
+    shader.vertexShader = shader.vertexShader.replace(
+      "#include <common>",
+      `#include <common>
+uniform float uRelicTime;
+uniform float uRelicMelt;
+uniform float uRelicScream;
+uniform float uRelicMeltStart;
+uniform float uRelicMeltEnd;`,
+    );
+
+    shader.vertexShader = shader.vertexShader.replace(
+      "#include <begin_vertex>",
+      `vec3 transformed = vec3(position);
+float relicHeadMask = smoothstep(uRelicMeltStart, uRelicMeltEnd, position.y);
+float relicWaveA = sin(position.y * 13.0 + position.z * 8.0 + uRelicTime * 4.2);
+float relicWaveB = cos(position.x * 11.0 - position.y * 6.0 + uRelicTime * 3.1);
+float relicShear = relicHeadMask * uRelicMelt;
+transformed.x += relicWaveA * 0.036 * relicShear;
+transformed.z += relicWaveB * 0.045 * relicShear;
+transformed.y -= abs(relicWaveA * relicWaveB) * 0.022 * relicShear;
+float relicScreamMask = smoothstep(uRelicMeltStart - 0.12, uRelicMeltEnd, position.y);
+transformed.x += sin(uRelicTime * 42.0 + position.y * 24.0) * 0.012 * uRelicScream * relicScreamMask;
+transformed.z += cos(uRelicTime * 37.0 + position.x * 18.0) * 0.014 * uRelicScream * relicScreamMask;`,
+    );
+  };
+
+  material.customProgramCacheKey = () => "serara-awakening-deformation-v2";
+  material.needsUpdate = true;
+}
+
+function resolveRelicHooks(root: THREE.Object3D): RelicHooks {
+  const hooks: RelicHooks = {
+    head: null,
+    eyes: [],
+    pedestalChunks: [],
+    morphMeshes: [],
+  };
+
+  root.traverse((object) => {
+    const name = object.name.toUpperCase();
+
+    if (!hooks.head && (name === "SERARA_HEAD" || name.endsWith("_HEAD"))) {
+      hooks.head = object;
+    }
+
+    if (
+      name === "SERARA_EYE_L" ||
+      name === "SERARA_EYE_R" ||
+      name.endsWith("_EYE_L") ||
+      name.endsWith("_EYE_R")
+    ) {
+      hooks.eyes.push(object);
+    }
+
+    if (
+      name.startsWith("SERARA_PEDESTAL_CHUNK_") ||
+      name.startsWith("PEDESTAL_CHUNK_")
+    ) {
+      hooks.pedestalChunks.push(object);
+    }
+
+    if (
+      object instanceof THREE.Mesh &&
+      object.morphTargetDictionary &&
+      object.morphTargetInfluences
+    ) {
+      hooks.morphMeshes.push(object);
+    }
+  });
+
+  return hooks;
+}
+
+function setMorphValue(
+  meshes: THREE.Mesh[],
+  name: string,
+  value: number,
+) {
+  for (const mesh of meshes) {
+    const dictionary = mesh.morphTargetDictionary;
+    const influences = mesh.morphTargetInfluences;
+    if (!dictionary || !influences) continue;
+    const index = dictionary[name];
+    if (index == null) continue;
+    influences[index] = THREE.MathUtils.clamp(value, 0, 1);
+  }
+}
+
+function FallbackGaze({
+  phase,
+  bounds,
+}: {
+  phase: CinematicPhase;
+  bounds: THREE.Box3;
+}) {
+  const eye = useRef<THREE.Mesh>(null);
+  const glow = useRef<THREE.PointLight>(null);
+  const { pointer } = useThree();
+
+  const anchor = useMemo(() => {
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    bounds.getSize(size);
+    bounds.getCenter(center);
+    return new THREE.Vector3(
+      bounds.max.x - size.x * 0.1,
+      bounds.min.y + size.y * 0.865,
+      center.z + size.z * 0.02,
+    );
+  }, [bounds]);
+
+  useFrame((_, delta) => {
+    if (!eye.current) return;
+    const visible =
+      phase === "notice" ||
+      phase === "release" ||
+      phase === "rise" ||
+      phase === "melt" ||
+      phase === "scream" ||
+      phase === "aftermath";
+    const intensity =
+      phase === "scream" ? 1 : phase === "melt" ? 0.82 : visible ? 0.62 : 0;
+
+    eye.current.position.x = THREE.MathUtils.damp(
+      eye.current.position.x,
+      anchor.x + pointer.x * 0.008,
+      7,
+      delta,
+    );
+    eye.current.position.y = THREE.MathUtils.damp(
+      eye.current.position.y,
+      anchor.y + pointer.y * 0.004,
+      7,
+      delta,
+    );
+    eye.current.position.z = anchor.z;
+
+    const material = eye.current.material as THREE.MeshBasicMaterial;
+    material.opacity = THREE.MathUtils.damp(
+      material.opacity,
+      intensity,
+      8,
+      delta,
+    );
+    eye.current.scale.setScalar(
+      THREE.MathUtils.damp(
+        eye.current.scale.x,
+        phase === "scream" ? 1.8 : visible ? 1 : 0.2,
+        8,
+        delta,
+      ),
+    );
+
+    if (glow.current) {
+      glow.current.intensity = THREE.MathUtils.damp(
+        glow.current.intensity,
+        phase === "scream" ? 1.3 : visible ? 0.28 : 0,
+        8,
+        delta,
+      );
+    }
+  });
+
+  return (
+    <group>
+      <mesh ref={eye} position={anchor} renderOrder={40}>
+        <sphereGeometry args={[0.018, 14, 14]} />
+        <meshBasicMaterial
+          color="#f2eee8"
+          transparent
+          opacity={0}
+          depthTest={false}
+          depthWrite={false}
+          toneMapped={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+      <pointLight
+        ref={glow}
+        position={anchor}
+        color="#d8dfe5"
+        intensity={0}
+        distance={0.65}
+      />
+    </group>
+  );
+}
+
+function PedestalFragments({
+  phase,
+  bounds,
+}: {
+  phase: CinematicPhase;
+  bounds: THREE.Box3;
+}) {
+  const refs = useRef<Array<THREE.Mesh | null>>([]);
+  const releasedAt = useRef(0);
+
+  const fragments = useMemo(() => {
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    bounds.getSize(size);
+    bounds.getCenter(center);
+
+    return Array.from({ length: 14 }, (_, index) => {
+      const angle = (index / 14) * Math.PI * 2 + (index % 3) * 0.31;
+      const radial = size.x * (0.12 + (index % 4) * 0.035);
+      const base = new THREE.Vector3(
+        center.x + Math.cos(angle) * radial,
+        bounds.min.y + size.y * (0.025 + (index % 3) * 0.012),
+        center.z + Math.sin(angle) * Math.max(size.z * 0.18, 0.03),
+      );
+      const velocity = new THREE.Vector3(
+        Math.cos(angle) * (0.08 + (index % 5) * 0.016),
+        0.12 + (index % 4) * 0.035,
+        Math.sin(angle) * (0.07 + (index % 3) * 0.018),
+      );
+      return {
+        base,
+        velocity,
+        scale: Math.max(size.x * (0.025 + (index % 4) * 0.006), 0.012),
+        rotation: new THREE.Euler(index * 0.31, index * 0.47, index * 0.19),
+      };
+    });
+  }, [bounds]);
+
+  useEffect(() => {
+    if (phase === "release") releasedAt.current = performance.now();
+    if (phase === "bound" || phase === "notice") releasedAt.current = 0;
+  }, [phase]);
+
+  useFrame(({ clock }) => {
+    const active =
+      phase === "release" ||
+      phase === "rise" ||
+      phase === "melt" ||
+      phase === "scream" ||
+      phase === "aftermath";
+    const age = releasedAt.current
+      ? Math.max(0, (performance.now() - releasedAt.current) / 1000)
+      : 0;
+
+    refs.current.forEach((mesh, index) => {
+      if (!mesh) return;
+      const fragment = fragments[index];
+      const material = mesh.material as THREE.MeshBasicMaterial;
+
+      if (!active) {
+        mesh.position.copy(fragment.base);
+        mesh.scale.setScalar(0.001);
+        material.opacity = 0;
+        return;
+      }
+
+      const t = Math.min(age, 4.4);
+      mesh.position.copy(fragment.base);
+      mesh.position.addScaledVector(fragment.velocity, t);
+      mesh.position.y -= 0.075 * t * t;
+      mesh.rotation.x = fragment.rotation.x + t * (0.9 + index * 0.025);
+      mesh.rotation.y = fragment.rotation.y + t * (0.65 + index * 0.018);
+      mesh.rotation.z = fragment.rotation.z + t * 0.52;
+      const pulse = 1 + Math.sin(clock.getElapsedTime() * 8 + index) * 0.08;
+      mesh.scale.setScalar(fragment.scale * pulse);
+      material.opacity = Math.max(0, Math.min(0.52, 0.64 - Math.max(0, t - 2.6) * 0.22));
+    });
+  });
+
+  return (
+    <group>
+      {fragments.map((fragment, index) => (
+        <mesh
+          key={index}
+          ref={(mesh) => {
+            refs.current[index] = mesh;
+          }}
+          position={fragment.base}
+          rotation={fragment.rotation}
+          renderOrder={22}
+        >
+          <tetrahedronGeometry args={[1, 0]} />
+          <meshBasicMaterial
+            color="#c9d0d4"
+            wireframe
+            transparent
+            opacity={0}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 function Relic({
   state,
   phase,
@@ -140,7 +462,24 @@ function Relic({
   const relic = useMemo(() => scene.clone(true), [scene]);
   const group = useRef<THREE.Group>(null);
   const activation = useRef(0);
+  const phaseStarted = useRef(performance.now());
   const { pointer } = useThree();
+  const bounds = useMemo(() => new THREE.Box3().setFromObject(relic), [relic]);
+  const hooks = useMemo(() => resolveRelicHooks(relic), [relic]);
+  const deformation = useRef<RelicDeformationUniforms>({
+    time: { value: 0 },
+    melt: { value: 0 },
+    scream: { value: 0 },
+    meltStart: { value: 0 },
+    meltEnd: { value: 1 },
+  });
+  const hookDefaults = useRef<{
+    headRotation: THREE.Euler | null;
+    chunkPositions: Map<string, THREE.Vector3>;
+  }>({
+    headRotation: null,
+    chunkPositions: new Map(),
+  });
 
   const materials = useRef<{
     base: THREE.MeshStandardMaterial;
@@ -181,17 +520,38 @@ function Relic({
   useEffect(() => {
     const current = materials.current;
     if (!current) return;
+
+    const size = new THREE.Vector3();
+    bounds.getSize(size);
+    deformation.current.meltStart.value = bounds.min.y + size.y * 0.68;
+    deformation.current.meltEnd.value = bounds.min.y + size.y * 0.98;
+
+    installRelicDeformation(current.base, deformation.current);
+    installRelicDeformation(current.wire, deformation.current);
+    installRelicDeformation(current.ghost, deformation.current);
     attachWireframeTreatment(relic, current.base, current.wire, current.ghost);
+
+    if (hooks.head) {
+      hookDefaults.current.headRotation = hooks.head.rotation.clone();
+    }
+    hookDefaults.current.chunkPositions = new Map(
+      hooks.pedestalChunks.map((chunk) => [chunk.uuid, chunk.position.clone()]),
+    );
+
     return () => {
       current.base.dispose();
       current.wire.dispose();
       current.ghost.dispose();
     };
-  }, [relic]);
+  }, [bounds, hooks, relic]);
 
   useEffect(() => {
     if (state === "awakening") activation.current = performance.now();
   }, [state]);
+
+  useEffect(() => {
+    phaseStarted.current = performance.now();
+  }, [phase]);
 
   useFrame(({ clock }, delta) => {
     if (!group.current) return;
@@ -202,6 +562,7 @@ function Relic({
     const { base: baseMaterial, wire: wireMaterial, ghost: ghostMaterial } = currentMaterials;
     const energy = audioEnergy.current;
     const progress = scroll.current;
+    const phaseAge = Math.max(0, (performance.now() - phaseStarted.current) / 1000);
     const aware =
       state === "sensing" ||
       state === "watching" ||
@@ -213,6 +574,73 @@ function Relic({
       state === "awakening" && elapsed < 920
         ? Math.sin(elapsed * 0.115) * (1 - elapsed / 920)
         : 0;
+
+    const targetMelt =
+      phase === "melt" ? 0.82 : phase === "scream" ? 1 : phase === "aftermath" ? 0.18 : 0;
+    const targetScream = phase === "scream" ? 1 : 0;
+    deformation.current.time.value = t;
+    deformation.current.melt.value = THREE.MathUtils.damp(
+      deformation.current.melt.value,
+      targetMelt,
+      phase === "scream" ? 12 : 4.2,
+      delta,
+    );
+    deformation.current.scream.value = THREE.MathUtils.damp(
+      deformation.current.scream.value,
+      targetScream,
+      14,
+      delta,
+    );
+
+    const meltMorph = deformation.current.melt.value;
+    setMorphValue(hooks.morphMeshes, "face_melt", meltMorph);
+    setMorphValue(hooks.morphMeshes, "jaw_open", phase === "scream" ? 0.94 : phase === "melt" ? 0.22 : 0);
+    setMorphValue(hooks.morphMeshes, "eye_widen", phase === "notice" ? 0.48 : phase === "scream" ? 1 : 0.12);
+    setMorphValue(hooks.morphMeshes, "brow_tension", phase === "melt" || phase === "scream" ? 0.78 : 0.08);
+
+    const headDefault = hookDefaults.current.headRotation;
+    if (hooks.head && headDefault) {
+      hooks.head.rotation.x = THREE.MathUtils.damp(
+        hooks.head.rotation.x,
+        headDefault.x + pointer.y * 0.055 + (phase === "scream" ? -0.06 : 0),
+        4.6,
+        delta,
+      );
+      hooks.head.rotation.y = THREE.MathUtils.damp(
+        hooks.head.rotation.y,
+        headDefault.y - pointer.x * 0.11 + (phase === "notice" ? -0.08 : 0),
+        4.6,
+        delta,
+      );
+      hooks.head.rotation.z = THREE.MathUtils.damp(
+        hooks.head.rotation.z,
+        headDefault.z + (phase === "melt" ? Math.sin(t * 3.2) * 0.018 : 0),
+        4,
+        delta,
+      );
+    }
+
+    hooks.pedestalChunks.forEach((chunk, index) => {
+      const base = hookDefaults.current.chunkPositions.get(chunk.uuid);
+      if (!base) return;
+      const released =
+        phase === "release" ||
+        phase === "rise" ||
+        phase === "melt" ||
+        phase === "scream" ||
+        phase === "aftermath";
+      if (!released) {
+        chunk.position.lerp(base, Math.min(1, delta * 8));
+        return;
+      }
+      const angle = index * 2.399963;
+      const drift = Math.min(phaseAge, 4);
+      chunk.position.x = base.x + Math.cos(angle) * drift * (0.035 + index * 0.002);
+      chunk.position.z = base.z + Math.sin(angle) * drift * (0.035 + index * 0.002);
+      chunk.position.y = base.y + drift * 0.035 - drift * drift * 0.018;
+      chunk.rotation.x += delta * (0.35 + index * 0.03);
+      chunk.rotation.z += delta * (0.28 + index * 0.02);
+    });
 
     const phaseEnergy =
       phase === "notice"
@@ -369,6 +797,10 @@ function Relic({
         onActivate();
       }}
     >
+      {hooks.eyes.length === 0 && <FallbackGaze phase={phase} bounds={bounds} />}
+      {hooks.pedestalChunks.length === 0 && (
+        <PedestalFragments phase={phase} bounds={bounds} />
+      )}
       <primitive object={relic} />
     </group>
   );
@@ -378,10 +810,12 @@ function CameraRig({
   scroll,
   audioEnergy,
   state,
+  phase,
 }: {
   scroll: MutableRefObject<number>;
   audioEnergy: MutableRefObject<AudioEnergy>;
   state: RelicState;
+  phase: CinematicPhase;
 }) {
   const { camera, pointer } = useThree();
   const cameraRef = useRef(camera);
@@ -396,9 +830,29 @@ function CameraRig({
     const low = audioEnergy.current.low;
 
     const statePush = state === "awakening" ? -0.08 : state === "watching" ? -0.035 : 0;
-    const targetZ = 4.65 - p * 0.34 + statePush - low * 0.02;
-    const targetX = -0.02 + p * 0.06 + pointer.x * 0.012;
-    const targetY = 0.04 + p * 0.025 + Math.sin(t * 0.09) * 0.005;
+    const phasePush =
+      phase === "notice"
+        ? -0.035
+        : phase === "melt"
+          ? -0.08
+          : phase === "scream"
+            ? -0.14
+            : phase === "aftermath"
+              ? 0.035
+              : 0;
+    const shake =
+      phase === "scream"
+        ? Math.sin(t * 46) * 0.018
+        : phase === "release"
+          ? Math.sin(t * 24) * 0.006
+          : 0;
+    const targetZ = 4.65 - p * 0.34 + statePush + phasePush - low * 0.02;
+    const targetX = -0.02 + p * 0.06 + pointer.x * 0.012 + shake;
+    const targetY =
+      0.04 +
+      p * 0.025 +
+      Math.sin(t * 0.09) * 0.005 +
+      (phase === "scream" ? Math.cos(t * 41) * 0.009 : 0);
 
     const activeCamera = cameraRef.current;
     activeCamera.position.x = THREE.MathUtils.damp(activeCamera.position.x, targetX, 2.1, delta);
@@ -487,7 +941,12 @@ function RelicStage({
         />
       </Suspense>
 
-      <CameraRig scroll={scroll} audioEnergy={audioEnergy} state={state} />
+      <CameraRig
+        scroll={scroll}
+        audioEnergy={audioEnergy}
+        state={state}
+        phase={phase}
+      />
     </Canvas>
   );
 }
@@ -794,7 +1253,7 @@ export default function WakingRelicExperience() {
         }
 
         if (cue.phase === "scream") {
-          playSfx(SFX.awakening, 0.58);
+          playSfx(SFX.scream, 0.78);
         }
 
         if (cue.phase === "aftermath") {
