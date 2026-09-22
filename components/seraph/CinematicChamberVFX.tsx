@@ -139,6 +139,76 @@ function EmberField() {
   );
 }
 
+
+function CounterCurrent() {
+  const count = 120;
+  const pointsRef = useRef<THREE.Points>(null);
+  const materialRef = useRef<THREE.PointsMaterial>(null);
+
+  const geometry = useMemo(() => {
+    const positions = new Float32Array(count * 3);
+
+    for (let index = 0; index < count; index += 1) {
+      const radius = 0.9 + seeded(index, 31) * 2.15;
+      const angle = seeded(index, 32) * Math.PI * 2;
+
+      positions[index * 3] = Math.cos(angle) * radius;
+      positions[index * 3 + 1] = -1.45 + seeded(index, 33) * 3.45;
+      positions[index * 3 + 2] = Math.sin(angle) * radius * 0.58;
+    }
+
+    const result = new THREE.BufferGeometry();
+    result.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    return result;
+  }, []);
+
+  useFrame(({ clock, pointer }, delta) => {
+    const points = pointsRef.current;
+    const material = materialRef.current;
+    if (!points || !material) return;
+
+    const t = clock.elapsedTime;
+    const state = getSeraraState(t);
+    const presence = getSeraraPresence(pointer);
+    const conflict = Math.min(1, state.tension * 0.8 + state.fall * 0.7);
+
+    points.rotation.y -= delta * (0.022 + state.tension * 0.035);
+    points.rotation.z =
+      Math.sin(t * 0.09) * 0.035 - presence * pointer.x * 0.01;
+
+    material.opacity = THREE.MathUtils.lerp(
+      material.opacity,
+      0.11 + state.grace * 0.22 + state.tension * 0.16 - state.fall * 0.08,
+      Math.min(1, delta * 1.8),
+    );
+
+    material.size = THREE.MathUtils.lerp(
+      material.size,
+      0.016 + state.grace * 0.008 + conflict * 0.004,
+      Math.min(1, delta * 2),
+    );
+
+    material.color
+      .set("#d8d2c7")
+      .lerp(new THREE.Color("#a8b1ae"), state.fall * 0.42);
+  });
+
+  return (
+    <points ref={pointsRef} geometry={geometry}>
+      <pointsMaterial
+        ref={materialRef}
+        color="#d8d2c7"
+        size={0.019}
+        sizeAttenuation
+        transparent
+        opacity={0.18}
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+      />
+    </points>
+  );
+}
+
 function HostileFragments() {
   const count = 22;
   const meshRef = useRef<THREE.InstancedMesh>(null);
@@ -504,6 +574,7 @@ export default function CinematicChamberVFX() {
     <group>
       <VolumetricShafts />
       <FloorFissureField />
+      <CounterCurrent />
       <HostileFragments />
       <EmberField />
 
