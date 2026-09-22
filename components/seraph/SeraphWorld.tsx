@@ -4,7 +4,7 @@ import { ContactShadows, PerspectiveCamera } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { Suspense } from "react";
 import * as THREE from "three";
-import SeraraRiggedBody from "./SeraraRiggedBody";
+import SeraraCanonicalBody from "./SeraraCanonicalBody";
 
 function Chamber() {
   return (
@@ -49,7 +49,7 @@ function Chamber() {
         color="#d8a06c"
       />
 
-      <SeraraRiggedBody />
+      <SeraraCanonicalBody />
 
       <mesh position={[0, -1.84, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[3.8, 96]} />
