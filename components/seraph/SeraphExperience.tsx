@@ -11,6 +11,8 @@ export default function SeraphExperience() {
       </div>
 
       <div className={styles.vignette} aria-hidden="true" />
+      <div className={styles.atmosphere} aria-hidden="true" />
+      <div className={styles.grain} aria-hidden="true" />
 
       <header className={styles.header}>
         <span>SERARA://01</span>
@@ -18,9 +20,9 @@ export default function SeraphExperience() {
       </header>
 
       <div className={styles.caption}>
-        <span className={styles.marker}>PRESENCE / 01</span>
+        <span className={styles.marker}>PRESENCE / BODY / SOUND</span>
         <p>
-          Before it can fall, it has to feel alive while standing still.
+          Move close. Touch the body. The chamber answers with it.
         </p>
       </div>
     </main>
