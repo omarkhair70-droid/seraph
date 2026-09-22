@@ -271,7 +271,18 @@ export default function SeraraCanonicalBody() {
   const { scene } = useGLTF(MODEL_URL);
 
   useEffect(() => {
-    return () => sonic.dispose();
+    const unlock = () => {
+      void sonic.wake();
+    };
+
+    window.addEventListener("pointerdown", unlock, { once: true });
+    window.addEventListener("keydown", unlock, { once: true });
+
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+      sonic.dispose();
+    };
   }, [sonic]);
 
   const fitted = useMemo(() => {
