@@ -370,11 +370,17 @@ export default function SeraraCanonicalBody() {
   const sonic = useMemo(() => createSeraraSonic(), []);
   const { scene } = useGLTF(MODEL_URL);
 
+  const fitted = useMemo(() => buildCanonicalRuntime(scene), [scene]);
   const fittedRef = useRef<CanonicalRuntime | null>(null);
-  if (fittedRef.current == null) {
-    fittedRef.current = buildCanonicalRuntime(scene);
-  }
-  const fitted = fittedRef.current;
+
+  useEffect(() => {
+    fittedRef.current = fitted;
+    return () => {
+      if (fittedRef.current === fitted) {
+        fittedRef.current = null;
+      }
+    };
+  }, [fitted]);
 
   useEffect(() => {
     const unlock = () => {
