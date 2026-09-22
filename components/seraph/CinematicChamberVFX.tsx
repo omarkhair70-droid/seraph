@@ -1,7 +1,7 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import {
   getSeraraPresence,
@@ -14,6 +14,114 @@ function seeded(index: number, salt = 0) {
   const value = Math.sin(index * 12.9898 + salt * 78.233) * 43758.5453;
   return value - Math.floor(value);
 }
+
+
+const RITUAL_VERTEX_SHADER = \`
+  varying vec2 vUv;
+  uniform float uTime;
+  uniform float uHeat;
+  uniform float uPhase;
+
+  void main() {
+    vUv = uv;
+    vec3 p = position;
+
+    float taper = sin(uv.y * 3.14159265);
+    float waveA = sin(uv.y * 10.0 + uTime * (1.2 + uHeat * 2.0) + uPhase);
+    float waveB = sin(uv.y * 21.0 - uTime * 0.72 + uPhase * 1.7);
+
+    p.x += (waveA * 0.12 + waveB * 0.035) * taper * (0.55 + uHeat);
+    p.z += cos(uv.y * 8.0 + uTime * 0.8 + uPhase) * 0.045 * taper;
+    p.y += sin(uv.x * 4.0 + uTime * 0.3 + uPhase) * 0.02 * taper;
+
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+  }
+\`;
+
+const RITUAL_FRAGMENT_SHADER = \`
+  varying vec2 vUv;
+  uniform float uTime;
+  uniform float uHeat;
+  uniform float uGrace;
+  uniform float uPresence;
+  uniform float uPhase;
+
+  float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+  }
+
+  void main() {
+    float edge = smoothstep(0.0, 0.18, vUv.x) *
+      smoothstep(0.0, 0.18, 1.0 - vUv.x);
+
+    float body = sin(vUv.y * 3.14159265);
+    float flicker =
+      0.72 +
+      sin(uTime * 4.0 + vUv.y * 18.0 + uPhase) * 0.12 +
+      hash(floor(vUv * 28.0 + uTime * 0.7)) * 0.16;
+
+    float alpha =
+      edge *
+      body *
+      flicker *
+      (0.055 + uGrace * 0.035 + uHeat * 0.16 + uPresence * 0.045);
+
+    vec3 cold = vec3(0.35, 0.23, 0.18);
+    vec3 ember = vec3(1.0, 0.19, 0.045);
+    vec3 color = mix(cold, ember, clamp(uHeat * 0.86 + vUv.y * 0.18, 0.0, 1.0));
+
+    gl_FragColor = vec4(color, alpha);
+  }
+\`;
+
+const FLOOR_VERTEX_SHADER = \`
+  varying vec2 vUv;
+
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+\`;
+
+const FLOOR_FRAGMENT_SHADER = \`
+  varying vec2 vUv;
+  uniform float uTime;
+  uniform float uHeat;
+  uniform float uPulse;
+  uniform float uPresence;
+
+  void main() {
+    vec2 p = vUv - 0.5;
+    float r = length(p) * 2.0;
+    float a = atan(p.y, p.x);
+
+    float spokes = abs(sin(a * 7.0 + sin(a * 3.0) * 1.8));
+    float cracks = smoothstep(0.965 - uHeat * 0.035, 0.998, spokes);
+
+    float rings = smoothstep(
+      0.93,
+      1.0,
+      abs(sin(r * 18.0 - uTime * (0.32 + uHeat * 0.45)))
+    );
+
+    float mask =
+      smoothstep(1.02, 0.18, r) *
+      smoothstep(0.02, 0.16, r);
+
+    float flare =
+      (cracks * 0.78 + rings * 0.22) *
+      mask *
+      (0.05 + uHeat * 0.42 + uPulse * uPresence * 0.16);
+
+    vec3 ember = mix(
+      vec3(0.35, 0.08, 0.035),
+      vec3(1.0, 0.22, 0.055),
+      uHeat
+    );
+
+    gl_FragColor = vec4(ember, flare);
+  }
+\`;
 
 function EmberField() {
   const count = 190;
@@ -329,86 +437,17 @@ function RitualRibbon({
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
 
-  const materialRef = useRef<THREE.ShaderMaterial | null>(null);
-
-  if (materialRef.current == null) {
-    materialRef.current = new THREE.ShaderMaterial({
-        transparent: true,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-        blending: THREE.AdditiveBlending,
-        uniforms: {
-          uTime: { value: 0 },
-          uHeat: { value: 0 },
-          uGrace: { value: 1 },
-          uPresence: { value: 0 },
-          uPhase: { value: phase },
-        },
-        vertexShader: `
-          varying vec2 vUv;
-          uniform float uTime;
-          uniform float uHeat;
-          uniform float uPhase;
-
-          void main() {
-            vUv = uv;
-            vec3 p = position;
-
-            float taper = sin(uv.y * 3.14159265);
-            float waveA = sin(uv.y * 10.0 + uTime * (1.2 + uHeat * 2.0) + uPhase);
-            float waveB = sin(uv.y * 21.0 - uTime * 0.72 + uPhase * 1.7);
-
-            p.x += (waveA * 0.12 + waveB * 0.035) * taper * (0.55 + uHeat);
-            p.z += cos(uv.y * 8.0 + uTime * 0.8 + uPhase) * 0.045 * taper;
-            p.y += sin(uv.x * 4.0 + uTime * 0.3 + uPhase) * 0.02 * taper;
-
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
-          }
-        `,
-        fragmentShader: `
-          varying vec2 vUv;
-          uniform float uTime;
-          uniform float uHeat;
-          uniform float uGrace;
-          uniform float uPresence;
-          uniform float uPhase;
-
-          float hash(vec2 p) {
-            return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
-          }
-
-          void main() {
-            float edge = smoothstep(0.0, 0.18, vUv.x) *
-              smoothstep(0.0, 0.18, 1.0 - vUv.x);
-
-            float body = sin(vUv.y * 3.14159265);
-            float flicker =
-              0.72 +
-              sin(uTime * 4.0 + vUv.y * 18.0 + uPhase) * 0.12 +
-              hash(floor(vUv * 28.0 + uTime * 0.7)) * 0.16;
-
-            float alpha =
-              edge *
-              body *
-              flicker *
-              (0.055 + uGrace * 0.035 + uHeat * 0.16 + uPresence * 0.045);
-
-            vec3 cold = vec3(0.35, 0.23, 0.18);
-            vec3 ember = vec3(1.0, 0.19, 0.045);
-            vec3 color = mix(cold, ember, clamp(uHeat * 0.86 + vUv.y * 0.18, 0.0, 1.0));
-
-            gl_FragColor = vec4(color, alpha);
-          }
-        `,
-      });
-  }
-
-  useEffect(() => {
-    const current = materialRef.current;
-    return () => current?.dispose();
-  }, []);
-
-  const material = materialRef.current;
+  const materialRef = useRef<THREE.ShaderMaterial>(null);
+  const uniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uHeat: { value: 0 },
+      uGrace: { value: 1 },
+      uPresence: { value: 0 },
+      uPhase: { value: phase },
+    }),
+    [phase],
+  );
 
   useFrame(({ clock, pointer }) => {
     const current = materialRef.current;
@@ -440,81 +479,31 @@ function RitualRibbon({
       scale={scale}
     >
       <planeGeometry args={[0.5, 3.2, 10, 56]} />
-      <primitive object={material} attach="material" />
+      <shaderMaterial
+        ref={materialRef}
+        transparent
+        depthWrite={false}
+        side={THREE.DoubleSide}
+        blending={THREE.AdditiveBlending}
+        uniforms={uniforms}
+        vertexShader={RITUAL_VERTEX_SHADER}
+        fragmentShader={RITUAL_FRAGMENT_SHADER}
+      />
     </mesh>
   );
 }
 
 function FloorFissureField() {
-  const materialRef = useRef<THREE.ShaderMaterial | null>(null);
-
-  if (materialRef.current == null) {
-    materialRef.current = new THREE.ShaderMaterial({
-        transparent: true,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-        blending: THREE.AdditiveBlending,
-        uniforms: {
-          uTime: { value: 0 },
-          uHeat: { value: 0 },
-          uPulse: { value: 0 },
-          uPresence: { value: 0 },
-        },
-        vertexShader: `
-          varying vec2 vUv;
-          void main() {
-            vUv = uv;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          }
-        `,
-        fragmentShader: `
-          varying vec2 vUv;
-          uniform float uTime;
-          uniform float uHeat;
-          uniform float uPulse;
-          uniform float uPresence;
-
-          void main() {
-            vec2 p = vUv - 0.5;
-            float r = length(p) * 2.0;
-            float a = atan(p.y, p.x);
-
-            float spokes = abs(sin(a * 7.0 + sin(a * 3.0) * 1.8));
-            float cracks = smoothstep(0.965 - uHeat * 0.035, 0.998, spokes);
-
-            float rings = smoothstep(
-              0.93,
-              1.0,
-              abs(sin(r * 18.0 - uTime * (0.32 + uHeat * 0.45)))
-            );
-
-            float mask =
-              smoothstep(1.02, 0.18, r) *
-              smoothstep(0.02, 0.16, r);
-
-            float flare =
-              (cracks * 0.78 + rings * 0.22) *
-              mask *
-              (0.05 + uHeat * 0.42 + uPulse * uPresence * 0.16);
-
-            vec3 ember = mix(
-              vec3(0.35, 0.08, 0.035),
-              vec3(1.0, 0.22, 0.055),
-              uHeat
-            );
-
-            gl_FragColor = vec4(ember, flare);
-          }
-        `,
-      });
-  }
-
-  useEffect(() => {
-    const current = materialRef.current;
-    return () => current?.dispose();
-  }, []);
-
-  const material = materialRef.current;
+  const materialRef = useRef<THREE.ShaderMaterial>(null);
+  const uniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uHeat: { value: 0 },
+      uPulse: { value: 0 },
+      uPresence: { value: 0 },
+    }),
+    [],
+  );
 
   useFrame(({ clock, pointer }) => {
     const current = materialRef.current;
@@ -534,7 +523,16 @@ function FloorFissureField() {
   return (
     <mesh position={[0, -1.825, 0]} rotation={[-Math.PI / 2, 0, 0]}>
       <planeGeometry args={[5.4, 5.4]} />
-      <primitive object={material} attach="material" />
+      <shaderMaterial
+        ref={materialRef}
+        transparent
+        depthWrite={false}
+        side={THREE.DoubleSide}
+        blending={THREE.AdditiveBlending}
+        uniforms={uniforms}
+        vertexShader={FLOOR_VERTEX_SHADER}
+        fragmentShader={FLOOR_FRAGMENT_SHADER}
+      />
     </mesh>
   );
 }
