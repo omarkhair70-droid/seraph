@@ -135,16 +135,16 @@ function Relic({
         emissiveIntensity: 0.08,
       }),
       wire: new THREE.MeshBasicMaterial({
-        color: new THREE.Color("#d9dde0"),
+        color: new THREE.Color("#f2f2f0"),
         wireframe: true,
         transparent: true,
-        opacity: 0.24,
+        opacity: 0.34,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
         toneMapped: false,
       }),
       ghost: new THREE.MeshBasicMaterial({
-        color: new THREE.Color("#75818d"),
+        color: new THREE.Color("#8a9096"),
         wireframe: true,
         transparent: true,
         opacity: 0.055,
@@ -191,7 +191,7 @@ function Relic({
         ? Math.sin(elapsed * 0.115) * (1 - elapsed / 920)
         : 0;
 
-    const scrollYaw = THREE.MathUtils.lerp(-0.05, 0.24, Math.min(progress * 1.2, 1));
+    const scrollYaw = THREE.MathUtils.lerp(1.48, 1.62, Math.min(progress * 1.2, 1));
     const targetYaw =
       scrollYaw +
       pointer.x * 0.035 +
@@ -226,7 +226,7 @@ function Relic({
       audioBreath +
       Math.abs(jolt) * 0.004;
 
-    const scrollScale = THREE.MathUtils.lerp(1.18, 1.31, Math.min(progress, 0.8));
+    const scrollScale = THREE.MathUtils.lerp(0.76, 0.82, Math.min(progress, 0.8));
     group.current.scale.setScalar(scrollScale * breathe);
 
     group.current.position.y =
@@ -329,9 +329,9 @@ function CameraRig({
     const low = audioEnergy.current.low;
 
     const statePush = state === "awakening" ? -0.08 : state === "watching" ? -0.035 : 0;
-    const targetZ = 3.62 - p * 0.6 + statePush - low * 0.035;
-    const targetX = -0.08 + p * 0.17 + pointer.x * 0.025;
-    const targetY = 0.19 + p * 0.07 + Math.sin(t * 0.09) * 0.009;
+    const targetZ = 4.65 - p * 0.34 + statePush - low * 0.02;
+    const targetX = -0.02 + p * 0.06 + pointer.x * 0.012;
+    const targetY = 0.04 + p * 0.025 + Math.sin(t * 0.09) * 0.005;
 
     const activeCamera = cameraRef.current;
     activeCamera.position.x = THREE.MathUtils.damp(activeCamera.position.x, targetX, 2.1, delta);
@@ -374,7 +374,7 @@ function RelicStage({
         gl.toneMappingExposure = 0.86;
         gl.outputColorSpace = THREE.SRGBColorSpace;
       }}
-      camera={{ position: [-0.08, 0.19, 3.62], fov: 29, near: 0.1, far: 40 }}
+      camera={{ position: [-0.02, 0.04, 4.65], fov: 24, near: 0.1, far: 40 }}
       shadows
     >
       <fog attach="fog" args={["#050607", 3.0, 5.7]} />
