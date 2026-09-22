@@ -16,13 +16,13 @@ export default function SeraphExperience() {
 
       <header className={styles.header}>
         <span>SERARA://01</span>
-        <span>PHASE 01 · THE BODY</span>
+        <span>THE BODY · CINEMATIC CHAMBER</span>
       </header>
 
       <div className={styles.caption}>
-        <span className={styles.marker}>PRESENCE / BODY / SOUND</span>
+        <span className={styles.marker}>PRESENCE / RITUAL / SOUND</span>
         <p>
-          Move close. Touch the body. The chamber answers with it.
+          Move close. Touch once to wake the chamber. Stay long enough and it answers differently.
         </p>
       </div>
     </main>
