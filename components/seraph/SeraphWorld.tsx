@@ -11,6 +11,7 @@ import {
   getSeraraPulse,
   getSeraraState,
 } from "./serara-state";
+import { getSeraraBurst } from "./serara-runtime-signal";
 
 function LivingCamera() {
   const cameraRef = useRef<THREE.PerspectiveCamera>(null);
@@ -73,6 +74,7 @@ function ReactiveChamberField() {
     const state = getSeraraState(t);
     const presence = getSeraraPresence(pointer);
     const pulse = getSeraraPulse(t, state);
+    const burst = getSeraraBurst();
     const alpha = Math.min(1, delta * 2.1);
 
     if (crownRef.current) {
@@ -80,7 +82,8 @@ function ReactiveChamberField() {
         42 -
         state.tension * 7 -
         state.fall * 14 +
-        presence * (2 + pulse * 3);
+        presence * (2 + pulse * 3) +
+        burst * 9;
 
       crownRef.current.intensity = THREE.MathUtils.lerp(
         crownRef.current.intensity,
@@ -98,7 +101,8 @@ function ReactiveChamberField() {
         7 +
         state.tension * 4 +
         state.fall * 7 +
-        presence * pulse * 2.5;
+        presence * pulse * 2.5 +
+        burst * 9;
 
       bloodRimRef.current.intensity = THREE.MathUtils.lerp(
         bloodRimRef.current.intensity,
@@ -113,7 +117,8 @@ function ReactiveChamberField() {
         state.grace * 1.2 +
         state.tension * 4.8 +
         state.fall * 8.5 +
-        presence * (2.4 + pulse * 5.2);
+        presence * (2.4 + pulse * 5.2) +
+        burst * 14;
 
       innerRef.current.intensity = THREE.MathUtils.lerp(
         innerRef.current.intensity,
@@ -129,7 +134,8 @@ function ReactiveChamberField() {
       const heat =
         state.tension * 0.12 +
         state.fall * 0.28 +
-        presence * pulse * 0.08;
+        presence * pulse * 0.08 +
+        burst * 0.18;
 
       floorMaterialRef.current.emissiveIntensity = THREE.MathUtils.lerp(
         floorMaterialRef.current.emissiveIntensity,
