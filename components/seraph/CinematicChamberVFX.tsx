@@ -1,7 +1,7 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import {
   getSeraraPresence,
@@ -329,9 +329,10 @@ function RitualRibbon({
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
 
-  const material = useMemo(
-    () =>
-      new THREE.ShaderMaterial({
+  const materialRef = useRef<THREE.ShaderMaterial | null>(null);
+
+  if (materialRef.current == null) {
+    materialRef.current = new THREE.ShaderMaterial({
         transparent: true,
         depthWrite: false,
         side: THREE.DoubleSide,
@@ -399,20 +400,29 @@ function RitualRibbon({
             gl_FragColor = vec4(color, alpha);
           }
         `,
-      }),
-    [phase],
-  );
+      });
+  }
+
+  useEffect(() => {
+    const current = materialRef.current;
+    return () => current?.dispose();
+  }, []);
+
+  const material = materialRef.current;
 
   useFrame(({ clock, pointer }) => {
+    const current = materialRef.current;
+    if (!current) return;
+
     const t = clock.elapsedTime;
     const state = getSeraraState(t);
     const presence = getSeraraPresence(pointer);
     const heat = state.tension * 0.56 + state.fall + getSeraraBurst() * 0.7;
 
-    material.uniforms.uTime.value = t;
-    material.uniforms.uHeat.value = heat;
-    material.uniforms.uGrace.value = state.grace;
-    material.uniforms.uPresence.value = presence;
+    current.uniforms.uTime.value = t;
+    current.uniforms.uHeat.value = heat;
+    current.uniforms.uGrace.value = state.grace;
+    current.uniforms.uPresence.value = presence;
 
     if (meshRef.current) {
       meshRef.current.rotation.z =
@@ -436,9 +446,10 @@ function RitualRibbon({
 }
 
 function FloorFissureField() {
-  const material = useMemo(
-    () =>
-      new THREE.ShaderMaterial({
+  const materialRef = useRef<THREE.ShaderMaterial | null>(null);
+
+  if (materialRef.current == null) {
+    materialRef.current = new THREE.ShaderMaterial({
         transparent: true,
         depthWrite: false,
         side: THREE.DoubleSide,
@@ -495,20 +506,29 @@ function FloorFissureField() {
             gl_FragColor = vec4(ember, flare);
           }
         `,
-      }),
-    [],
-  );
+      });
+  }
+
+  useEffect(() => {
+    const current = materialRef.current;
+    return () => current?.dispose();
+  }, []);
+
+  const material = materialRef.current;
 
   useFrame(({ clock, pointer }) => {
+    const current = materialRef.current;
+    if (!current) return;
+
     const t = clock.elapsedTime;
     const state = getSeraraState(t);
     const presence = getSeraraPresence(pointer);
 
-    material.uniforms.uTime.value = t;
-    material.uniforms.uHeat.value =
+    current.uniforms.uTime.value = t;
+    current.uniforms.uHeat.value =
       state.tension * 0.58 + state.fall + getSeraraBurst() * 0.78;
-    material.uniforms.uPulse.value = getSeraraPulse(t, state);
-    material.uniforms.uPresence.value = presence;
+    current.uniforms.uPulse.value = getSeraraPulse(t, state);
+    current.uniforms.uPresence.value = presence;
   });
 
   return (
