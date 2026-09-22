@@ -144,7 +144,7 @@ export function createSeraraSonic(): SeraraSonic {
 
     element.pause();
     element.currentTime = 0;
-    element.volume = THREE.MathUtils.clamp(volume, 0, 0.22);
+    element.volume = THREE.MathUtils.clamp(volume, 0, 0.28);
     currentVoice = element;
     lastVoiceAt = context.currentTime;
 
@@ -304,16 +304,16 @@ export function createSeraraSonic(): SeraraSonic {
     const now = context.currentTime;
     master.gain.cancelScheduledValues(now);
     master.gain.setValueAtTime(Math.max(master.gain.value, 0.0001), now);
-    master.gain.exponentialRampToValueAtTime(0.115, now + 1.4);
+    master.gain.exponentialRampToValueAtTime(0.16, now + 1.4);
 
     if (ambientElement) {
-      ambientElement.volume = 0.055;
+      ambientElement.volume = 0.08;
       void ambientElement.play().catch(() => undefined);
     }
 
     if (!wakeVoicePlayed) {
       wakeVoicePlayed = true;
-      playVoice("wake", 0.115);
+      playVoice("wake", 0.15);
     }
 
     lastInteractionAt = now;
@@ -329,9 +329,9 @@ export function createSeraraSonic(): SeraraSonic {
 
     if (!firstBurstVoicePlayed) {
       firstBurstVoicePlayed = true;
-      playVoice("opens", 0.145);
+      playVoice("opens", 0.19);
     } else if (now - lastVoiceAt > 18) {
-      playVoice("seam", 0.085);
+      playVoice("seam", 0.11);
     }
 
     const hitGain = context.createGain();
@@ -424,15 +424,15 @@ export function createSeraraSonic(): SeraraSonic {
 
     if (ambientElement) {
       const ambientTarget =
-        0.05 +
-        state.grace * 0.018 +
-        state.tension * 0.028 +
-        state.fall * 0.016 +
-        presence * 0.018;
+        0.075 +
+        state.grace * 0.02 +
+        state.tension * 0.035 +
+        state.fall * 0.028 +
+        presence * 0.025;
       ambientElement.volume = THREE.MathUtils.lerp(
         ambientElement.volume,
-        THREE.MathUtils.clamp(ambientTarget, 0.045, 0.12),
-        0.035,
+        THREE.MathUtils.clamp(ambientTarget, 0.065, 0.16),
+        0.04,
       );
     }
 
@@ -442,7 +442,7 @@ export function createSeraraSonic(): SeraraSonic {
       remainPlayedForIdle = false;
 
       if (now - lastVoiceAt > 8.5) {
-        playVoice("close", 0.075);
+        playVoice("close", 0.11);
       }
     }
 
@@ -452,12 +452,12 @@ export function createSeraraSonic(): SeraraSonic {
       now - presenceEnteredAt > 6.5 &&
       now - lastVoiceAt > 10
     ) {
-      playVoice("silence", 0.065);
+      playVoice("silence", 0.095);
       presenceEnteredAt = Infinity;
     }
 
     if (state.fall > 0.72 && previousFall <= 0.72 && now - lastVoiceAt > 9) {
-      playVoice("seam", 0.075);
+      playVoice("seam", 0.105);
     }
 
     if (
@@ -467,7 +467,7 @@ export function createSeraraSonic(): SeraraSonic {
       now - lastVoiceAt > 12
     ) {
       remainPlayedForIdle = true;
-      playVoice("remain", 0.06);
+      playVoice("remain", 0.085);
     }
 
     if (presence > 0.22) {
@@ -497,32 +497,32 @@ export function createSeraraSonic(): SeraraSonic {
     );
 
     master.gain.setTargetAtTime(
-      0.105 + presence * 0.025 + heat * 0.018,
+      0.142 + presence * 0.032 + heat * 0.024,
       now,
       0.22,
     );
 
     bodyGain.gain.setTargetAtTime(
-      0.032 + presence * 0.014 + pulse * presence * 0.012 + heat * 0.008,
+      0.04 + presence * 0.018 + pulse * presence * 0.015 + heat * 0.011,
       now,
       0.14,
     );
 
     harmonicGain.gain.setTargetAtTime(
-      0.01 +
-        state.tension * 0.014 +
-        state.fall * 0.009 +
-        presence * pulse * 0.008,
+      0.013 +
+        state.tension * 0.018 +
+        state.fall * 0.012 +
+        presence * pulse * 0.011,
       now,
       0.16,
     );
 
     breathGain.gain.setTargetAtTime(
-      0.005 +
-        state.grace * 0.004 +
-        state.tension * 0.009 +
-        state.fall * 0.006 +
-        presence * 0.003,
+      0.007 +
+        state.grace * 0.005 +
+        state.tension * 0.011 +
+        state.fall * 0.008 +
+        presence * 0.004,
       now,
       0.25,
     );
@@ -606,7 +606,7 @@ export function createSeraraSonic(): SeraraSonic {
     );
 
     panner.pan.setTargetAtTime(
-      THREE.MathUtils.clamp(pointerX * 0.48, -0.48, 0.48),
+      THREE.MathUtils.clamp(pointerX * 0.62, -0.62, 0.62),
       now,
       0.1,
     );
