@@ -262,31 +262,7 @@ function updateMorphs(
   }
 }
 
-export default function SeraraCanonicalBody() {
-  const motionRef = useRef<THREE.Group>(null);
-  const attentionRef = useRef(new THREE.Vector2());
-  const attentionTargetRef = useRef(new THREE.Vector2());
-  const presenceRef = useRef(0);
-  const impulseRef = useRef(0);
-  const sonic = useMemo(() => createSeraraSonic(), []);
-  const { scene } = useGLTF(MODEL_URL);
-
-  useEffect(() => {
-    const unlock = () => {
-      void sonic.wake();
-    };
-
-    window.addEventListener("pointerdown", unlock, { once: true });
-    window.addEventListener("keydown", unlock, { once: true });
-
-    return () => {
-      window.removeEventListener("pointerdown", unlock);
-      window.removeEventListener("keydown", unlock);
-      sonic.dispose();
-    };
-  }, [sonic]);
-
-  const fitted = useMemo(() => {
+function buildCanonicalRuntime(scene: THREE.Object3D) {
     const cloned = clone(scene);
     const materialSignals = createSeraraMaterialSignals();
     const buckets: MaterialBuckets = {
@@ -380,11 +356,47 @@ export default function SeraraCanonicalBody() {
       morphMeshes,
       fingerBones,
     };
-  }, [scene]);
+
+}
+
+type CanonicalRuntime = ReturnType<typeof buildCanonicalRuntime>;
+
+export default function SeraraCanonicalBody() {
+  const motionRef = useRef<THREE.Group>(null);
+  const attentionRef = useRef(new THREE.Vector2());
+  const attentionTargetRef = useRef(new THREE.Vector2());
+  const presenceRef = useRef(0);
+  const impulseRef = useRef(0);
+  const sonic = useMemo(() => createSeraraSonic(), []);
+  const { scene } = useGLTF(MODEL_URL);
+
+  const fittedRef = useRef<CanonicalRuntime | null>(null);
+  if (fittedRef.current == null) {
+    fittedRef.current = buildCanonicalRuntime(scene);
+  }
+  const fitted = fittedRef.current;
+
+  useEffect(() => {
+    const unlock = () => {
+      void sonic.wake();
+    };
+
+    window.addEventListener("pointerdown", unlock, { once: true });
+    window.addEventListener("keydown", unlock, { once: true });
+
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+      sonic.dispose();
+    };
+  }, [sonic]);
+
+
 
   useFrame(({ clock, pointer }, delta) => {
     const motion = motionRef.current;
-    if (!motion) return;
+    const current = fittedRef.current;
+    if (!motion || !current) return;
 
     const t = clock.elapsedTime;
     const state = getSeraraState(t);
@@ -415,12 +427,12 @@ export default function SeraraCanonicalBody() {
 
     sonic.update(state, presence, pulse, pointer.x);
 
-    fitted.materialSignals.time.value = t;
-    fitted.materialSignals.grace.value = state.grace;
-    fitted.materialSignals.tension.value = state.tension;
-    fitted.materialSignals.fall.value = state.fall;
-    fitted.materialSignals.presence.value = presence;
-    fitted.materialSignals.pulse.value = pulse;
+    current.materialSignals.time.value = t;
+    current.materialSignals.grace.value = state.grace;
+    current.materialSignals.tension.value = state.tension;
+    current.materialSignals.fall.value = state.fall;
+    current.materialSignals.presence.value = presence;
+    current.materialSignals.pulse.value = pulse;
 
     const stress = THREE.MathUtils.clamp(
       state.tension * 0.55 + state.fall,
@@ -428,13 +440,13 @@ export default function SeraraCanonicalBody() {
       1,
     );
 
-    for (const material of fitted.buckets.porcelain) {
+    for (const material of current.buckets.porcelain) {
       material.roughness = THREE.MathUtils.lerp(0.3, 0.61, stress);
       material.emissiveIntensity =
         0.018 + state.grace * 0.02 + state.tension * 0.035 + state.fall * 0.055;
     }
 
-    for (const material of fitted.buckets.inner) {
+    for (const material of current.buckets.inner) {
       material.color.set("#281817").lerp(new THREE.Color("#16090a"), state.fall);
       material.emissive.set("#6f3427").lerp(
         new THREE.Color("#d9552d"),
@@ -444,7 +456,7 @@ export default function SeraraCanonicalBody() {
         0.045 + state.tension * 0.12 + state.fall * 0.24;
     }
 
-    for (const material of fitted.buckets.eyes) {
+    for (const material of current.buckets.eyes) {
       material.emissiveIntensity =
         0.13 +
         state.grace * 0.07 +
@@ -458,12 +470,12 @@ export default function SeraraCanonicalBody() {
       );
     }
 
-    for (const material of fitted.buckets.cavity) {
+    for (const material of current.buckets.cavity) {
       material.emissiveIntensity =
         0.02 + state.tension * 0.07 + state.fall * 0.16;
     }
 
-    for (const material of fitted.buckets.signal) {
+    for (const material of current.buckets.signal) {
       material.emissiveIntensity =
         0.3 +
         state.grace * 0.18 +
@@ -478,7 +490,7 @@ export default function SeraraCanonicalBody() {
         presence * 0.08;
     }
 
-    updateMorphs(fitted.morphMeshes, state, presence, delta);
+    updateMorphs(current.morphMeshes, state, presence, delta);
 
     attentionTargetRef.current.set(pointer.x, pointer.y);
     attentionRef.current.lerp(
@@ -546,8 +558,8 @@ export default function SeraraCanonicalBody() {
     const keys = Object.keys(BONE_NAMES) as BoneKey[];
 
     for (const key of keys) {
-      const bone = fitted.bones[key];
-      const base = fitted.bind[key];
+      const bone = current.bones[key];
+      const base = current.bind[key];
       if (!bone || !base) continue;
 
       const grace = POSTURES.grace[key] ?? [0, 0, 0];
@@ -597,7 +609,7 @@ export default function SeraraCanonicalBody() {
       bone.scale.copy(base.scale);
     }
 
-    for (const fingerBone of fitted.fingerBones) {
+    for (const fingerBone of current.fingerBones) {
       const segmentWeight =
         fingerBone.segment === 1 ? 0.52 : fingerBone.segment === 2 ? 0.82 : 1;
 
