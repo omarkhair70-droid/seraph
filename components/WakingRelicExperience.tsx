@@ -507,7 +507,7 @@ export default function WakingRelicExperience() {
   const spoken = useRef<Set<string>>(new Set());
   const thresholdPlayed = useRef(false);
   const glitchPlayed = useRef(false);
-  const cinematicTimers = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+  const cinematicTimers = useRef<number[]>([]);
   const scroll = useRef(0);
   const energy = useRef<AudioEnergy>({ low: 0, mid: 0, high: 0, overall: 0 });
 
