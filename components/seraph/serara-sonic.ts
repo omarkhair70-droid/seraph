@@ -3,6 +3,24 @@ import type { SeraraState } from "./serara-state";
 
 type AudioContextConstructor = typeof AudioContext;
 
+type VoiceKey =
+  | "wake"
+  | "close"
+  | "silence"
+  | "opens"
+  | "seam"
+  | "remain";
+
+const CINEMATIC_AUDIO_ROOT = "/assets/serara-cinematic/audio";
+const VOICE_FILES: Record<VoiceKey, string> = {
+  wake: "voice_wake.mp3",
+  close: "voice_close.mp3",
+  silence: "voice_silence.mp3",
+  opens: "voice_opens.mp3",
+  seam: "voice_seam.mp3",
+  remain: "voice_remain.mp3",
+};
+
 export type SeraraSonic = {
   wake: () => Promise<void>;
   burst: () => void;
@@ -79,7 +97,62 @@ export function createSeraraSonic(): SeraraSonic {
   let whisperBFilter: BiquadFilterNode | null = null;
   let crackleFilter: BiquadFilterNode | null = null;
 
+  let ambientElement: HTMLAudioElement | null = null;
+  let voiceElements: Partial<Record<VoiceKey, HTMLAudioElement>> = {};
+  let currentVoice: HTMLAudioElement | null = null;
+  let wakeVoicePlayed = false;
+  let firstBurstVoicePlayed = false;
+  let previousPresence = 0;
+  let presenceEnteredAt = -Infinity;
+  let previousFall = 0;
+  let lastVoiceAt = -Infinity;
+  let lastInteractionAt = 0;
+  let remainPlayedForIdle = false;
+
+  const buildMedia = () => {
+    if (typeof window === "undefined" || ambientElement) return;
+
+    ambientElement = new Audio(
+      `${CINEMATIC_AUDIO_ROOT}/serara_ritual_ambient.mp3`,
+    );
+    ambientElement.loop = true;
+    ambientElement.preload = "auto";
+    ambientElement.volume = 0;
+
+    voiceElements = Object.fromEntries(
+      (Object.keys(VOICE_FILES) as VoiceKey[]).map((key) => {
+        const element = new Audio(
+          `${CINEMATIC_AUDIO_ROOT}/${VOICE_FILES[key]}`,
+        );
+        element.preload = "auto";
+        element.volume = 0.08;
+        return [key, element];
+      }),
+    ) as Partial<Record<VoiceKey, HTMLAudioElement>>;
+  };
+
+  const playVoice = (key: VoiceKey, volume: number) => {
+    if (!context) return;
+
+    const element = voiceElements[key];
+    if (!element) return;
+
+    if (currentVoice && currentVoice !== element) {
+      currentVoice.pause();
+      currentVoice.currentTime = 0;
+    }
+
+    element.pause();
+    element.currentTime = 0;
+    element.volume = THREE.MathUtils.clamp(volume, 0, 0.22);
+    currentVoice = element;
+    lastVoiceAt = context.currentTime;
+
+    void element.play().catch(() => undefined);
+  };
+
   const build = () => {
+    buildMedia();
     if (context || typeof window === "undefined") return;
 
     const AudioCtor = (
@@ -232,6 +305,18 @@ export function createSeraraSonic(): SeraraSonic {
     master.gain.cancelScheduledValues(now);
     master.gain.setValueAtTime(Math.max(master.gain.value, 0.0001), now);
     master.gain.exponentialRampToValueAtTime(0.115, now + 1.4);
+
+    if (ambientElement) {
+      ambientElement.volume = 0.055;
+      void ambientElement.play().catch(() => undefined);
+    }
+
+    if (!wakeVoicePlayed) {
+      wakeVoicePlayed = true;
+      playVoice("wake", 0.115);
+    }
+
+    lastInteractionAt = now;
   };
 
   const burst = () => {
@@ -239,6 +324,15 @@ export function createSeraraSonic(): SeraraSonic {
     if (!context || !master || !convolver) return;
 
     const now = context.currentTime;
+    lastInteractionAt = now;
+    remainPlayedForIdle = false;
+
+    if (!firstBurstVoicePlayed) {
+      firstBurstVoicePlayed = true;
+      playVoice("opens", 0.145);
+    } else if (now - lastVoiceAt > 18) {
+      playVoice("seam", 0.085);
+    }
 
     const hitGain = context.createGain();
     const hitOsc = context.createOscillator();
@@ -327,6 +421,62 @@ export function createSeraraSonic(): SeraraSonic {
       0,
       1,
     );
+
+    if (ambientElement) {
+      const ambientTarget =
+        0.05 +
+        state.grace * 0.018 +
+        state.tension * 0.028 +
+        state.fall * 0.016 +
+        presence * 0.018;
+      ambientElement.volume = THREE.MathUtils.lerp(
+        ambientElement.volume,
+        THREE.MathUtils.clamp(ambientTarget, 0.045, 0.12),
+        0.035,
+      );
+    }
+
+    if (presence > 0.54 && previousPresence <= 0.54) {
+      presenceEnteredAt = now;
+      lastInteractionAt = now;
+      remainPlayedForIdle = false;
+
+      if (now - lastVoiceAt > 8.5) {
+        playVoice("close", 0.075);
+      }
+    }
+
+    if (
+      presence > 0.62 &&
+      Number.isFinite(presenceEnteredAt) &&
+      now - presenceEnteredAt > 6.5 &&
+      now - lastVoiceAt > 10
+    ) {
+      playVoice("silence", 0.065);
+      presenceEnteredAt = Infinity;
+    }
+
+    if (state.fall > 0.72 && previousFall <= 0.72 && now - lastVoiceAt > 9) {
+      playVoice("seam", 0.075);
+    }
+
+    if (
+      presence < 0.18 &&
+      now - lastInteractionAt > 18 &&
+      !remainPlayedForIdle &&
+      now - lastVoiceAt > 12
+    ) {
+      remainPlayedForIdle = true;
+      playVoice("remain", 0.06);
+    }
+
+    if (presence > 0.22) {
+      lastInteractionAt = now;
+      remainPlayedForIdle = false;
+    }
+
+    previousPresence = presence;
+    previousFall = state.fall;
 
     const voiceGateA = Math.pow(
       Math.max(0, Math.sin(now * 0.43 + 0.7)),
@@ -463,6 +613,21 @@ export function createSeraraSonic(): SeraraSonic {
   };
 
   const dispose = () => {
+    ambientElement?.pause();
+    if (ambientElement) {
+      ambientElement.currentTime = 0;
+    }
+
+    currentVoice?.pause();
+    for (const element of Object.values(voiceElements)) {
+      element?.pause();
+      if (element) element.currentTime = 0;
+    }
+
+    ambientElement = null;
+    voiceElements = {};
+    currentVoice = null;
+
     if (!context) return;
 
     for (const source of [
