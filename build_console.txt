@@ -1,0 +1,48 @@
+BUILD: body profiles
+C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\work\build_serara.py:16: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
+  m=bpy.data.materials.new(name); m.diffuse_color=(*color,1);m.use_nodes=True
+BUILD: continuous union and skin weights
+BUILD: facial shell
+BUILD: cranial lattice and neck integration
+BUILD: limb and hand mineral anatomy
+BUILD: rig and normalize
+Info: Removed: 0 vertices, 0 edges, 0 faces
+Info: Removed: 0 vertices, 0 edges, 0 faces
+Info: Removed: 0 vertices, 0 edges, 0 faces
+Info: Removed: 0 vertices, 0 edges, 0 faces
+Info: Removed: 1568 vertices, 0 edges, 0 faces
+Info: Removed: 0 vertices, 0 edges, 0 faces
+Info: Saved as "SERARA_CANONICAL.blend"
+INFO Draco is available, use library at C:\Program Files\Blender Foundation\Blender 5.2\5.2\scripts\addons_core\io_scene_gltf2\bf_intern_draco_bridge.dll
+INFO MeshOptimizer is available, use library at C:\Program Files\Blender Foundation\Blender 5.2\5.2\scripts\addons_core\io_scene_gltf2\bf_intern_meshopt_bridge.dll
+04:03:03 | INFO: Starting glTF 2.0 export
+04:03:03 | WARNING: Armature must be the parent of skinned meshArmature is selected by its name, but may be false in case of instances
+04:03:03 | WARNING: Armature must be the parent of skinned meshArmature is selected by its name, but may be false in case of instances
+04:03:03 | WARNING: Armature must be the parent of skinned meshArmature is selected by its name, but may be false in case of instances
+04:03:03 | WARNING: Armature must be the parent of skinned meshArmature is selected by its name, but may be false in case of instances
+04:03:03 | WARNING: Armature must be the parent of skinned meshArmature is selected by its name, but may be false in case of instances
+04:03:03 | WARNING: Armature must be the parent of skinned meshArmature is selected by its name, but may be false in case of instances
+04:03:03 | WARNING: Mesh Body_seed is not valid, and may be exported wrongly
+04:03:03 | INFO: Extracting primitive: Body_seed
+04:03:03 | INFO: Primitives created: 2
+04:03:03 | INFO: Extracting primitive: Mouth seam
+04:03:03 | INFO: Primitives created: 1
+04:03:03 | INFO: Extracting primitive: Sphere.034
+04:03:03 | INFO: Primitives created: 1
+04:03:03 | WARNING: Mesh SERARA_Head is not valid, and may be exported wrongly
+04:03:03 | INFO: Extracting primitive: SERARA_Head
+04:03:04 | INFO: Primitives created: 3
+04:03:04 | INFO: Extracting primitive: Anterior neck root
+04:03:04 | INFO: Primitives created: 1
+04:03:04 | INFO: Extracting primitive: Sphere.035
+04:03:04 | INFO: Primitives created: 1
+04:03:04 | INFO: Finished glTF 2.0 export in 0.582125186920166 s
+
+BUILD_STATS {"mesh_count": 6, "vertices": 33064, "triangles": 65991, "bones": 53, "height_m": 2.394419220276177, "objects": [{"name": "SERARA_Body", "vertices": 10508, "triangles": 20997}, {"name": "SERARA_Cavities", "vertices": 396, "triangles": 772}, {"name": "SERARA_Eyes", "vertices": 158, "triangles": 308}, {"name": "SERARA_Head", "vertices": 11452, "triangles": 22998}, {"name": "SERARA_MineralLaminae", "vertices": 10502, "triangles": 20828}, {"name": "SERARA_Signal", "vertices": 48, "triangles": 88}]}
+01:20.657  render           | Saved: 'C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\work\review_three_quarter.png'
+01:20.953  render           | Saved: 'C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\work\review_front.png'
+01:21.250  render           | Saved: 'C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\work\review_head.png'
+BUILD COMPLETE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:37:04)
+
+Blender quit

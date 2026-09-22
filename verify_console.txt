@@ -1,0 +1,20 @@
+04:16:02 | INFO: Data are loaded, start creating Blender stuff
+04:16:02 | INFO: Blender create Mesh node Body_seed
+04:16:03 | INFO: Blender create Mesh node Mouth seam
+04:16:03 | INFO: Blender create Mesh node Sphere.034
+04:16:03 | INFO: Blender create Mesh node SERARA_Head
+04:16:05 | INFO: Blender create Mesh node Anterior neck root
+04:16:06 | INFO: Blender create Mesh node Sphere.035
+04:16:06 | INFO: glTF import finished in 3.61s
+00:59.813  render           | Saved: 'C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\work\reimport_three_quarter.png'
+01:01.141  render           | Saved: 'C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\work\review_back.png'
+01:02.360  render           | Saved: 'C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\work\review_side.png'
+01:09.406  render           | Saved: 'C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\work\pose_shoulders.png'
+01:21.750  render           | Saved: 'C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\work\pose_compressed.png'
+01:23.063  render           | Saved: 'C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\work\pose_compressed_side.png'
+01:30.313  render           | Saved: 'C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\work\pose_hand.png'
+01:31.578  render           | Saved: 'C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\work\review_hand.png'
+REIMPORT_REPORT {"reimported": true, "armatures": 1, "bone_count": 53, "mesh_count": 6, "unweighted": 0, "weight_sum_errors": 0, "over_four_weights": 0, "nonfinite": 0, "tests": [{"name": "neutral reimport", "nonfinite": 0, "bounds_min": [-0.6541867256164551, -0.2132537066936493, 0.006495432462543249], "bounds_max": [0.654310405254364, 0.1206398755311966, 2.400914430618286], "max_edge_stretch": 1.000077429860538, "edges_stretched_over_4x": 0, "tested_edges": 100230, "worst_edges": []}, {"name": "neck shoulders elbows", "nonfinite": 0, "bounds_min": [-0.8818544745445251, -0.2132537066936493, 0.006495432462543249], "bounds_max": [0.8817707896232605, 0.49603840708732605, 2.3620896339416504], "max_edge_stretch": 2.0167839626179824, "edges_stretched_over_4x": 0, "tested_edges": 100230, "worst_edges": []}, {"name": "compressed FALL joint stress, geometry state neutral", "nonfinite": 0, "bounds_min": [-0.5241166353225708, -0.7225536108016968, 0.6236281394958496], "bounds_max": [0.5240793228149414, 0.5111696720123291, 2.147149085998535], "max_edge_stretch": 3.6116422693020462, "edges_stretched_over_4x": 0, "tested_edges": 100230, "worst_edges": []}, {"name": "all ten finger chains curl", "nonfinite": 0, "bounds_min": [-0.622168242931366, -0.2132537066936493, 0.006495432462543249], "bounds_max": [0.6212431788444519, 0.1206398755311966, 2.400914430618286], "max_edge_stretch": 3.6756617963362572, "edges_stretched_over_4x": 0, "tested_edges": 100230, "worst_edges": []}], "data_integrity_pass": true, "deformation_numeric_pass": true, "pass": true}
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:37:04)
+
+Blender quit
