@@ -996,11 +996,13 @@ export default function WakingRelicExperience() {
   const audioRuntime = useRef<AudioRuntime | null>(null);
   const activeSfx = useRef<Set<HTMLAudioElement>>(new Set());
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoverAwakenTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const spoken = useRef<Set<string>>(new Set());
   const thresholdPlayed = useRef(false);
   const glitchPlayed = useRef(false);
   const cinematicTimers = useRef<number[]>([]);
+  const cinematicStarted = useRef(false);
   const scroll = useRef(0);
   const energy = useRef<AudioEnergy>({ low: 0, mid: 0, high: 0, overall: 0 });
 
@@ -1198,6 +1200,7 @@ export default function WakingRelicExperience() {
       voice.current?.pause();
       for (const clip of sfxSet) clip.pause();
 
+      if (hoverAwakenTimer.current) clearTimeout(hoverAwakenTimer.current);
       for (const timer of cinematicTimers.current) clearTimeout(timer);
       cinematicTimers.current = [];
 
@@ -1244,28 +1247,12 @@ export default function WakingRelicExperience() {
     }
   };
 
-  const onSense = (hovered: boolean) => {
-    if (!entered) return;
+  const runCinematic = useCallback(() => {
+    if (!entered || cinematicStarted.current) return;
+    cinematicStarted.current = true;
+
     if (hoverTimer.current) clearTimeout(hoverTimer.current);
-
-    if (!hovered) {
-      setState("dormant");
-      return;
-    }
-
-    setState("sensing");
-    playVoice("close", true);
-
-    hoverTimer.current = setTimeout(() => {
-      setState("watching");
-      playVoice("silence", true);
-    }, 2400);
-  };
-
-  const onActivate = () => {
-    if (!entered) return;
-    if (hoverTimer.current) clearTimeout(hoverTimer.current);
-
+    if (hoverAwakenTimer.current) clearTimeout(hoverAwakenTimer.current);
     for (const timer of cinematicTimers.current) clearTimeout(timer);
     cinematicTimers.current = [];
 
@@ -1296,6 +1283,35 @@ export default function WakingRelicExperience() {
       }, cue.at);
       cinematicTimers.current.push(timer);
     }
+  }, [entered, playSfx, playVoice]);
+
+  const onSense = (hovered: boolean) => {
+    if (!entered) return;
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    if (hoverAwakenTimer.current) clearTimeout(hoverAwakenTimer.current);
+
+    if (!hovered) {
+      if (!cinematicStarted.current) setState("dormant");
+      return;
+    }
+
+    if (cinematicStarted.current) return;
+
+    setState("sensing");
+    playVoice("close", true);
+
+    hoverTimer.current = setTimeout(() => {
+      setState("watching");
+      playVoice("silence", true);
+    }, 1700);
+
+    hoverAwakenTimer.current = setTimeout(() => {
+      runCinematic();
+    }, 4400);
+  };
+
+  const onActivate = () => {
+    runCinematic();
   };
 
   const onPointerMove = (event: React.PointerEvent<HTMLElement>) => {
