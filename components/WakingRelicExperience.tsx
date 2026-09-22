@@ -463,6 +463,7 @@ function Relic({
   const group = useRef<THREE.Group>(null);
   const activation = useRef(0);
   const phaseStarted = useRef(0);
+  const releaseStarted = useRef(0);
   const hooksRef = useRef<RelicHooks>({
     head: null,
     eyes: [],
@@ -583,7 +584,10 @@ function Relic({
   }, [state]);
 
   useEffect(() => {
-    phaseStarted.current = performance.now();
+    const now = performance.now();
+    phaseStarted.current = now;
+    if (phase === "release") releaseStarted.current = now;
+    if (phase === "bound" || phase === "notice") releaseStarted.current = 0;
   }, [phase]);
 
   useFrame(({ clock }, delta) => {
@@ -597,6 +601,9 @@ function Relic({
     const energy = audioEnergy.current;
     const progress = scroll.current;
     const phaseAge = Math.max(0, (performance.now() - phaseStarted.current) / 1000);
+    const releaseAge = releaseStarted.current
+      ? Math.max(0, (performance.now() - releaseStarted.current) / 1000)
+      : 0;
     const aware =
       state === "sensing" ||
       state === "watching" ||
@@ -668,7 +675,7 @@ function Relic({
         return;
       }
       const angle = index * 2.399963;
-      const drift = Math.min(phaseAge, 4);
+      const drift = Math.min(releaseAge, 4);
       chunk.position.x = base.x + Math.cos(angle) * drift * (0.035 + index * 0.002);
       chunk.position.z = base.z + Math.sin(angle) * drift * (0.035 + index * 0.002);
       chunk.position.y = base.y + drift * 0.035 - drift * drift * 0.018;
@@ -1250,6 +1257,8 @@ export default function WakingRelicExperience() {
   const runCinematic = useCallback(() => {
     if (!entered || cinematicStarted.current) return;
     cinematicStarted.current = true;
+    thresholdPlayed.current = true;
+    glitchPlayed.current = true;
 
     if (hoverTimer.current) clearTimeout(hoverTimer.current);
     if (hoverAwakenTimer.current) clearTimeout(hoverAwakenTimer.current);
