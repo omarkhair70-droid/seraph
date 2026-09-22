@@ -64,7 +64,7 @@ const RITUAL_FRAGMENT_SHADER = `
       edge *
       body *
       flicker *
-      (0.055 + uGrace * 0.035 + uHeat * 0.16 + uPresence * 0.045);
+      (0.075 + uGrace * 0.045 + uHeat * 0.2 + uPresence * 0.06);
 
     vec3 cold = vec3(0.35, 0.23, 0.18);
     vec3 ember = vec3(1.0, 0.19, 0.045);
@@ -111,7 +111,7 @@ const FLOOR_FRAGMENT_SHADER = `
     float flare =
       (cracks * 0.78 + rings * 0.22) *
       mask *
-      (0.05 + uHeat * 0.42 + uPulse * uPresence * 0.16);
+      (0.07 + uHeat * 0.48 + uPulse * uPresence * 0.2);
 
     vec3 ember = mix(
       vec3(0.35, 0.08, 0.035),
@@ -206,12 +206,12 @@ function EmberField() {
     attribute.needsUpdate = true;
 
     const targetOpacity =
-      0.16 +
-      state.grace * 0.08 +
-      state.tension * 0.38 +
-      state.fall * 0.58 +
-      presence * pulse * 0.18 +
-      burst * 0.5;
+      0.22 +
+      state.grace * 0.11 +
+      state.tension * 0.42 +
+      state.fall * 0.66 +
+      presence * pulse * 0.22 +
+      burst * 0.58;
 
     material.opacity = THREE.MathUtils.lerp(
       material.opacity,
@@ -242,7 +242,7 @@ function EmberField() {
         size={0.024}
         sizeAttenuation
         transparent
-        opacity={0.22}
+        opacity={0.28}
         depthWrite={false}
         blending={THREE.AdditiveBlending}
       />
@@ -289,7 +289,7 @@ function CounterCurrent() {
 
     material.opacity = THREE.MathUtils.lerp(
       material.opacity,
-      0.11 + state.grace * 0.22 + state.tension * 0.16 - state.fall * 0.08,
+      0.16 + state.grace * 0.26 + state.tension * 0.2 - state.fall * 0.05,
       Math.min(1, delta * 1.8),
     );
 
@@ -312,7 +312,7 @@ function CounterCurrent() {
         size={0.019}
         sizeAttenuation
         transparent
-        opacity={0.18}
+        opacity={0.24}
         depthWrite={false}
         blending={THREE.AdditiveBlending}
       />
@@ -395,7 +395,7 @@ function HostileFragments() {
 
     material.opacity = THREE.MathUtils.lerp(
       material.opacity,
-      0.18 + state.tension * 0.2 + state.fall * 0.34 + burst * 0.2,
+      0.24 + state.tension * 0.24 + state.fall * 0.42 + burst * 0.28,
       Math.min(1, delta * 2),
     );
 
@@ -413,11 +413,11 @@ function HostileFragments() {
         ref={materialRef}
         color="#332722"
         emissive="#8b3427"
-        emissiveIntensity={0.08}
+        emissiveIntensity={0.12}
         roughness={0.68}
         metalness={0.08}
         transparent
-        opacity={0.22}
+        opacity={0.28}
         depthWrite={false}
       />
     </instancedMesh>
@@ -547,18 +547,18 @@ function VolumetricShafts() {
     const presence = getSeraraPresence(pointer);
     const burst = getSeraraBurst();
     const target =
-      0.018 +
-      state.grace * 0.014 +
-      state.tension * 0.026 +
-      presence * 0.012 -
-      state.fall * 0.008 +
-      burst * 0.035;
+      0.026 +
+      state.grace * 0.018 +
+      state.tension * 0.034 +
+      presence * 0.016 -
+      state.fall * 0.006 +
+      burst * 0.05;
 
     for (const material of [leftRef.current, rightRef.current]) {
       if (!material) continue;
       material.opacity = THREE.MathUtils.lerp(
         material.opacity,
-        Math.max(0.008, target),
+        Math.max(0.012, target),
         Math.min(1, delta * 1.4),
       );
     }
@@ -572,7 +572,7 @@ function VolumetricShafts() {
           ref={leftRef}
           color="#f4d5b0"
           transparent
-          opacity={0.026}
+          opacity={0.034}
           depthWrite={false}
           side={THREE.DoubleSide}
           blending={THREE.AdditiveBlending}
@@ -584,7 +584,7 @@ function VolumetricShafts() {
           ref={rightRef}
           color="#9f5145"
           transparent
-          opacity={0.018}
+          opacity={0.026}
           depthWrite={false}
           side={THREE.DoubleSide}
           blending={THREE.AdditiveBlending}
