@@ -11,6 +11,56 @@ import {
   getSeraraState,
 } from "./serara-state";
 
+function LivingCamera() {
+  const cameraRef = useRef<THREE.PerspectiveCamera>(null);
+
+  useFrame(({ clock, pointer }, delta) => {
+    const camera = cameraRef.current;
+    if (!camera) return;
+
+    const state = getSeraraState(clock.elapsedTime);
+    const presence = getSeraraPresence(pointer);
+    const alpha = Math.min(1, delta * 1.35);
+
+    camera.position.x = THREE.MathUtils.lerp(
+      camera.position.x,
+      pointer.x * 0.075 * presence,
+      alpha,
+    );
+
+    camera.position.y = THREE.MathUtils.lerp(
+      camera.position.y,
+      0.05 + pointer.y * 0.028 * presence - state.fall * 0.055,
+      alpha,
+    );
+
+    camera.position.z = THREE.MathUtils.lerp(
+      camera.position.z,
+      7.45 - state.tension * 0.1 - state.fall * 0.2 - presence * 0.055,
+      alpha,
+    );
+
+    const targetFov =
+      34 -
+      state.tension * 0.65 -
+      state.fall * 0.9 -
+      presence * 0.25;
+
+    camera.fov = THREE.MathUtils.lerp(camera.fov, targetFov, alpha);
+    camera.updateProjectionMatrix();
+    camera.lookAt(0, -0.015 - state.fall * 0.035, 0);
+  });
+
+  return (
+    <PerspectiveCamera
+      ref={cameraRef}
+      makeDefault
+      position={[0, 0.05, 7.45]}
+      fov={34}
+    />
+  );
+}
+
 function ReactiveChamberField() {
   const crownRef = useRef<THREE.SpotLight>(null);
   const bloodRimRef = useRef<THREE.PointLight>(null);
@@ -165,7 +215,7 @@ function Chamber() {
       <color attach="background" args={["#080706"]} />
       <fog attach="fog" args={["#080706", 4.8, 11]} />
 
-      <PerspectiveCamera makeDefault position={[0, 0.05, 7.45]} fov={34} />
+      <LivingCamera />
 
       <ReactiveChamberField />
 
