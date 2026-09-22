@@ -15,17 +15,69 @@ export type SeraraSonic = {
   dispose: () => void;
 };
 
+function createNoiseBuffer(context: AudioContext, seconds: number) {
+  const buffer = context.createBuffer(
+    1,
+    Math.floor(context.sampleRate * seconds),
+    context.sampleRate,
+  );
+  const channel = buffer.getChannelData(0);
+
+  for (let index = 0; index < channel.length; index += 1) {
+    channel[index] = Math.random() * 2 - 1;
+  }
+
+  return buffer;
+}
+
+function createReverbImpulse(context: AudioContext, seconds: number) {
+  const length = Math.floor(context.sampleRate * seconds);
+  const impulse = context.createBuffer(2, length, context.sampleRate);
+
+  for (let channelIndex = 0; channelIndex < 2; channelIndex += 1) {
+    const channel = impulse.getChannelData(channelIndex);
+
+    for (let index = 0; index < length; index += 1) {
+      const time = index / context.sampleRate;
+      const decay = Math.pow(1 - time / seconds, 3.15);
+      channel[index] =
+        (Math.random() * 2 - 1) *
+        decay *
+        (0.72 + channelIndex * 0.08);
+    }
+  }
+
+  return impulse;
+}
+
 export function createSeraraSonic(): SeraraSonic {
   let context: AudioContext | null = null;
   let master: GainNode | null = null;
+  let dryBus: GainNode | null = null;
+  let wetBus: GainNode | null = null;
+  let compressor: DynamicsCompressorNode | null = null;
+  let convolver: ConvolverNode | null = null;
+  let panner: StereoPannerNode | null = null;
+
   let bodyGain: GainNode | null = null;
   let harmonicGain: GainNode | null = null;
   let breathGain: GainNode | null = null;
+  let whisperAGain: GainNode | null = null;
+  let whisperBGain: GainNode | null = null;
+  let crackleGain: GainNode | null = null;
+
   let bodyOscillator: OscillatorNode | null = null;
   let harmonicOscillator: OscillatorNode | null = null;
   let breathSource: AudioBufferSourceNode | null = null;
-  let filter: BiquadFilterNode | null = null;
-  let panner: StereoPannerNode | null = null;
+  let whisperASource: AudioBufferSourceNode | null = null;
+  let whisperBSource: AudioBufferSourceNode | null = null;
+  let crackleSource: AudioBufferSourceNode | null = null;
+
+  let bodyFilter: BiquadFilterNode | null = null;
+  let breathFilter: BiquadFilterNode | null = null;
+  let whisperAFilter: BiquadFilterNode | null = null;
+  let whisperBFilter: BiquadFilterNode | null = null;
+  let crackleFilter: BiquadFilterNode | null = null;
 
   const build = () => {
     if (context || typeof window === "undefined") return;
@@ -42,92 +94,202 @@ export function createSeraraSonic(): SeraraSonic {
     context = new AudioCtor();
 
     master = context.createGain();
+    dryBus = context.createGain();
+    wetBus = context.createGain();
+    compressor = context.createDynamicsCompressor();
+    convolver = context.createConvolver();
+    panner = context.createStereoPanner();
+
     master.gain.value = 0.0001;
+    dryBus.gain.value = 0.9;
+    wetBus.gain.value = 0.46;
+
+    compressor.threshold.value = -20;
+    compressor.knee.value = 16;
+    compressor.ratio.value = 4.2;
+    compressor.attack.value = 0.012;
+    compressor.release.value = 0.24;
+
+    convolver.buffer = createReverbImpulse(context, 3.4);
 
     bodyGain = context.createGain();
     harmonicGain = context.createGain();
     breathGain = context.createGain();
+    whisperAGain = context.createGain();
+    whisperBGain = context.createGain();
+    crackleGain = context.createGain();
 
-    bodyGain.gain.value = 0.012;
-    harmonicGain.gain.value = 0.004;
-    breathGain.gain.value = 0.002;
+    bodyGain.gain.value = 0.035;
+    harmonicGain.gain.value = 0.012;
+    breathGain.gain.value = 0.008;
+    whisperAGain.gain.value = 0.0001;
+    whisperBGain.gain.value = 0.0001;
+    crackleGain.gain.value = 0.001;
 
     bodyOscillator = context.createOscillator();
     bodyOscillator.type = "sine";
-    bodyOscillator.frequency.value = 96;
+    bodyOscillator.frequency.value = 92;
 
     harmonicOscillator = context.createOscillator();
     harmonicOscillator.type = "triangle";
-    harmonicOscillator.frequency.value = 192;
+    harmonicOscillator.frequency.value = 185;
 
-    filter = context.createBiquadFilter();
-    filter.type = "lowpass";
-    filter.frequency.value = 720;
-    filter.Q.value = 0.7;
+    bodyFilter = context.createBiquadFilter();
+    bodyFilter.type = "lowpass";
+    bodyFilter.frequency.value = 760;
+    bodyFilter.Q.value = 0.9;
 
-    panner = context.createStereoPanner();
+    breathFilter = context.createBiquadFilter();
+    breathFilter.type = "bandpass";
+    breathFilter.frequency.value = 460;
+    breathFilter.Q.value = 0.72;
 
-    const noiseBuffer = context.createBuffer(
-      1,
-      context.sampleRate * 2,
-      context.sampleRate,
-    );
-    const noise = noiseBuffer.getChannelData(0);
+    whisperAFilter = context.createBiquadFilter();
+    whisperAFilter.type = "bandpass";
+    whisperAFilter.frequency.value = 980;
+    whisperAFilter.Q.value = 3.8;
 
-    for (let index = 0; index < noise.length; index += 1) {
-      noise[index] = Math.random() * 2 - 1;
-    }
+    whisperBFilter = context.createBiquadFilter();
+    whisperBFilter.type = "bandpass";
+    whisperBFilter.frequency.value = 1540;
+    whisperBFilter.Q.value = 4.6;
+
+    crackleFilter = context.createBiquadFilter();
+    crackleFilter.type = "highpass";
+    crackleFilter.frequency.value = 2300;
+    crackleFilter.Q.value = 0.4;
+
+    const noise = createNoiseBuffer(context, 4);
 
     breathSource = context.createBufferSource();
-    breathSource.buffer = noiseBuffer;
-    breathSource.loop = true;
+    whisperASource = context.createBufferSource();
+    whisperBSource = context.createBufferSource();
+    crackleSource = context.createBufferSource();
+
+    for (const source of [
+      breathSource,
+      whisperASource,
+      whisperBSource,
+      crackleSource,
+    ]) {
+      source.buffer = noise;
+      source.loop = true;
+    }
 
     bodyOscillator.connect(bodyGain);
     harmonicOscillator.connect(harmonicGain);
-    breathSource.connect(breathGain);
 
-    bodyGain.connect(filter);
-    harmonicGain.connect(filter);
-    breathGain.connect(filter);
-    filter.connect(panner);
+    breathSource.connect(breathFilter);
+    breathFilter.connect(breathGain);
+
+    whisperASource.connect(whisperAFilter);
+    whisperAFilter.connect(whisperAGain);
+
+    whisperBSource.connect(whisperBFilter);
+    whisperBFilter.connect(whisperBGain);
+
+    crackleSource.connect(crackleFilter);
+    crackleFilter.connect(crackleGain);
+
+    bodyGain.connect(bodyFilter);
+    harmonicGain.connect(bodyFilter);
+
+    for (const source of [
+      bodyFilter,
+      breathGain,
+      whisperAGain,
+      whisperBGain,
+      crackleGain,
+    ]) {
+      source.connect(dryBus);
+      source.connect(convolver);
+    }
+
+    dryBus.connect(panner);
+    convolver.connect(wetBus);
+    wetBus.connect(panner);
     panner.connect(master);
-    master.connect(context.destination);
+    master.connect(compressor);
+    compressor.connect(context.destination);
 
     bodyOscillator.start();
     harmonicOscillator.start();
     breathSource.start();
+    whisperASource.start(context.currentTime + 0.17);
+    whisperBSource.start(context.currentTime + 0.43);
+    crackleSource.start(context.currentTime + 0.08);
   };
 
   const wake = async () => {
     build();
-    if (!context) return;
+    if (!context || !master) return;
 
     if (context.state !== "running") {
       await context.resume();
     }
+
+    const now = context.currentTime;
+    master.gain.cancelScheduledValues(now);
+    master.gain.setValueAtTime(Math.max(master.gain.value, 0.0001), now);
+    master.gain.exponentialRampToValueAtTime(0.115, now + 1.4);
   };
 
   const burst = () => {
     build();
-    if (!context || !master) return;
+    if (!context || !master || !convolver) return;
 
     const now = context.currentTime;
-    const transient = context.createGain();
-    const oscillator = context.createOscillator();
 
-    oscillator.type = "sine";
-    oscillator.frequency.setValueAtTime(284, now);
-    oscillator.frequency.exponentialRampToValueAtTime(118, now + 0.72);
+    const hitGain = context.createGain();
+    const hitOsc = context.createOscillator();
+    const upperGain = context.createGain();
+    const upperOsc = context.createOscillator();
+    const noiseGain = context.createGain();
+    const noiseFilter = context.createBiquadFilter();
+    const noiseSource = context.createBufferSource();
 
-    transient.gain.setValueAtTime(0.0001, now);
-    transient.gain.exponentialRampToValueAtTime(0.035, now + 0.018);
-    transient.gain.exponentialRampToValueAtTime(0.0001, now + 0.9);
+    hitOsc.type = "sine";
+    hitOsc.frequency.setValueAtTime(238, now);
+    hitOsc.frequency.exponentialRampToValueAtTime(76, now + 1.05);
 
-    oscillator.connect(transient);
-    transient.connect(master);
+    upperOsc.type = "triangle";
+    upperOsc.frequency.setValueAtTime(476, now);
+    upperOsc.frequency.exponentialRampToValueAtTime(176, now + 0.82);
 
-    oscillator.start(now);
-    oscillator.stop(now + 0.92);
+    hitGain.gain.setValueAtTime(0.0001, now);
+    hitGain.gain.exponentialRampToValueAtTime(0.11, now + 0.018);
+    hitGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.15);
+
+    upperGain.gain.setValueAtTime(0.0001, now);
+    upperGain.gain.exponentialRampToValueAtTime(0.032, now + 0.026);
+    upperGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.72);
+
+    noiseSource.buffer = createNoiseBuffer(context, 0.8);
+    noiseFilter.type = "bandpass";
+    noiseFilter.frequency.value = 1280;
+    noiseFilter.Q.value = 1.2;
+
+    noiseGain.gain.setValueAtTime(0.0001, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.045, now + 0.012);
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.46);
+
+    hitOsc.connect(hitGain);
+    upperOsc.connect(upperGain);
+    noiseSource.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+
+    for (const transient of [hitGain, upperGain, noiseGain]) {
+      transient.connect(master);
+      transient.connect(convolver);
+    }
+
+    hitOsc.start(now);
+    upperOsc.start(now);
+    noiseSource.start(now);
+
+    hitOsc.stop(now + 1.18);
+    upperOsc.stop(now + 0.84);
+    noiseSource.stop(now + 0.82);
   };
 
   const update = (
@@ -143,73 +305,158 @@ export function createSeraraSonic(): SeraraSonic {
       !bodyGain ||
       !harmonicGain ||
       !breathGain ||
+      !whisperAGain ||
+      !whisperBGain ||
+      !crackleGain ||
       !bodyOscillator ||
       !harmonicOscillator ||
-      !filter ||
-      !panner
+      !bodyFilter ||
+      !breathFilter ||
+      !whisperAFilter ||
+      !whisperBFilter ||
+      !crackleFilter ||
+      !panner ||
+      !wetBus
     ) {
       return;
     }
 
     const now = context.currentTime;
-    const stateHeat = state.tension * 0.7 + state.fall;
+    const heat = THREE.MathUtils.clamp(
+      state.tension * 0.62 + state.fall,
+      0,
+      1,
+    );
+
+    const voiceGateA = Math.pow(
+      Math.max(0, Math.sin(now * 0.43 + 0.7)),
+      9,
+    );
+    const voiceGateB = Math.pow(
+      Math.max(0, Math.sin(now * 0.31 + 2.4)),
+      11,
+    );
+
+    const crackleGate = Math.pow(
+      Math.max(
+        0,
+        Math.sin(now * 17.3) * 0.54 +
+          Math.sin(now * 29.7 + 1.8) * 0.46,
+      ),
+      8,
+    );
 
     master.gain.setTargetAtTime(
-      0.026 + presence * 0.018 + stateHeat * 0.008,
-      now,
-      0.18,
-    );
-
-    bodyGain.gain.setTargetAtTime(
-      0.012 + presence * 0.006 + pulse * presence * 0.006,
-      now,
-      0.12,
-    );
-
-    harmonicGain.gain.setTargetAtTime(
-      0.0035 +
-        state.tension * 0.004 +
-        state.fall * 0.002 +
-        presence * pulse * 0.003,
-      now,
-      0.14,
-    );
-
-    breathGain.gain.setTargetAtTime(
-      0.001 +
-        state.grace * 0.0015 +
-        state.tension * 0.003 +
-        presence * 0.001,
+      0.105 + presence * 0.025 + heat * 0.018,
       now,
       0.22,
     );
 
-    const fundamental =
-      96 +
-      state.tension * 8 -
-      state.fall * 11 +
-      pulse * presence * 1.8;
+    bodyGain.gain.setTargetAtTime(
+      0.032 + presence * 0.014 + pulse * presence * 0.012 + heat * 0.008,
+      now,
+      0.14,
+    );
 
-    bodyOscillator.frequency.setTargetAtTime(fundamental, now, 0.14);
-    harmonicOscillator.frequency.setTargetAtTime(
-      fundamental * (2.01 + state.tension * 0.014),
+    harmonicGain.gain.setTargetAtTime(
+      0.01 +
+        state.tension * 0.014 +
+        state.fall * 0.009 +
+        presence * pulse * 0.008,
       now,
       0.16,
     );
 
-    filter.frequency.setTargetAtTime(
-      480 +
-        state.grace * 160 +
-        state.tension * 240 +
-        state.fall * 90 +
-        presence * 620 +
-        pulse * presence * 180,
+    breathGain.gain.setTargetAtTime(
+      0.005 +
+        state.grace * 0.004 +
+        state.tension * 0.009 +
+        state.fall * 0.006 +
+        presence * 0.003,
+      now,
+      0.25,
+    );
+
+    whisperAGain.gain.setTargetAtTime(
+      0.0015 +
+        voiceGateA *
+          (0.006 + state.tension * 0.012 + state.fall * 0.009 + presence * 0.005),
       now,
       0.12,
     );
 
+    whisperBGain.gain.setTargetAtTime(
+      0.0012 +
+        voiceGateB *
+          (0.005 + state.tension * 0.008 + state.fall * 0.014 + presence * 0.004),
+      now,
+      0.14,
+    );
+
+    crackleGain.gain.setTargetAtTime(
+      0.0007 +
+        crackleGate *
+          (0.002 + state.tension * 0.009 + state.fall * 0.018),
+      now,
+      0.03,
+    );
+
+    const fundamental =
+      92 +
+      state.tension * 11 -
+      state.fall * 13 +
+      pulse * presence * 2.6;
+
+    bodyOscillator.frequency.setTargetAtTime(fundamental, now, 0.16);
+    harmonicOscillator.frequency.setTargetAtTime(
+      fundamental * (2.012 + state.tension * 0.018),
+      now,
+      0.18,
+    );
+
+    bodyFilter.frequency.setTargetAtTime(
+      520 +
+        state.grace * 170 +
+        state.tension * 330 +
+        state.fall * 110 +
+        presence * 720 +
+        pulse * presence * 220,
+      now,
+      0.13,
+    );
+
+    breathFilter.frequency.setTargetAtTime(
+      390 + state.tension * 170 + state.fall * 80 + presence * 120,
+      now,
+      0.2,
+    );
+
+    whisperAFilter.frequency.setTargetAtTime(
+      920 + state.tension * 250 - state.fall * 80 + presence * 110,
+      now,
+      0.3,
+    );
+
+    whisperBFilter.frequency.setTargetAtTime(
+      1480 + state.tension * 320 - state.fall * 120,
+      now,
+      0.34,
+    );
+
+    crackleFilter.frequency.setTargetAtTime(
+      2100 + state.tension * 900 + state.fall * 1300,
+      now,
+      0.11,
+    );
+
+    wetBus.gain.setTargetAtTime(
+      0.4 + state.grace * 0.08 + state.fall * 0.14,
+      now,
+      0.4,
+    );
+
     panner.pan.setTargetAtTime(
-      THREE.MathUtils.clamp(pointerX * 0.38, -0.38, 0.38),
+      THREE.MathUtils.clamp(pointerX * 0.48, -0.48, 0.48),
       now,
       0.1,
     );
@@ -218,21 +465,50 @@ export function createSeraraSonic(): SeraraSonic {
   const dispose = () => {
     if (!context) return;
 
-    bodyOscillator?.stop();
-    harmonicOscillator?.stop();
-    breathSource?.stop();
+    for (const source of [
+      bodyOscillator,
+      harmonicOscillator,
+      breathSource,
+      whisperASource,
+      whisperBSource,
+      crackleSource,
+    ]) {
+      try {
+        source?.stop();
+      } catch {
+        // The source may already be stopped during hot reload.
+      }
+    }
+
     void context.close();
 
     context = null;
     master = null;
+    dryBus = null;
+    wetBus = null;
+    compressor = null;
+    convolver = null;
+    panner = null;
+
     bodyGain = null;
     harmonicGain = null;
     breathGain = null;
+    whisperAGain = null;
+    whisperBGain = null;
+    crackleGain = null;
+
     bodyOscillator = null;
     harmonicOscillator = null;
     breathSource = null;
-    filter = null;
-    panner = null;
+    whisperASource = null;
+    whisperBSource = null;
+    crackleSource = null;
+
+    bodyFilter = null;
+    breathFilter = null;
+    whisperAFilter = null;
+    whisperBFilter = null;
+    crackleFilter = null;
   };
 
   return {
