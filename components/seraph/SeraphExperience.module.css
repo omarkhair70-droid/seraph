@@ -71,3 +71,82 @@
     bottom: max(14px, env(safe-area-inset-bottom));
   }
 }
+
+
+.atmosphere,
+.grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.atmosphere {
+  mix-blend-mode: screen;
+  opacity: 0.34;
+  background:
+    radial-gradient(circle at 50% 58%, rgba(136, 45, 28, 0.13), transparent 24%),
+    radial-gradient(circle at 35% 42%, rgba(226, 129, 77, 0.035), transparent 31%),
+    radial-gradient(circle at 68% 48%, rgba(105, 39, 33, 0.07), transparent 34%);
+  animation: chamberBreath 8.6s ease-in-out infinite alternate;
+}
+
+.grain {
+  opacity: 0.13;
+  mix-blend-mode: soft-light;
+  background-image:
+    repeating-radial-gradient(
+      circle at 17% 23%,
+      rgba(255, 255, 255, 0.055) 0 0.7px,
+      transparent 0.7px 3px
+    ),
+    repeating-linear-gradient(
+      117deg,
+      transparent 0 7px,
+      rgba(255, 255, 255, 0.018) 7px 8px,
+      transparent 8px 14px
+    );
+  background-size: 7px 7px, 19px 19px;
+  animation: grainDrift 0.28s steps(2, end) infinite;
+}
+
+@keyframes chamberBreath {
+  from {
+    opacity: 0.22;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0.42;
+    transform: scale(1.025);
+  }
+}
+
+@keyframes grainDrift {
+  0% {
+    transform: translate3d(-0.4%, 0.2%, 0);
+  }
+
+  25% {
+    transform: translate3d(0.3%, -0.25%, 0);
+  }
+
+  50% {
+    transform: translate3d(0.15%, 0.35%, 0);
+  }
+
+  75% {
+    transform: translate3d(-0.2%, -0.1%, 0);
+  }
+
+  100% {
+    transform: translate3d(0.35%, 0.1%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atmosphere,
+  .grain {
+    animation: none;
+  }
+}
