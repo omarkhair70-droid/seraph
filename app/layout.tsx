@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SERAPH://01 — FALL / ASCENT",
+  title: "SERARA — The Waking Relic",
   description:
-    "An embodied interactive world where human posture changes a living digital presence.",
+    "An interactive ritual presence: a dormant sculptural entity that wakes through attention, motion, light and sound.",
   robots: {
     index: false,
     follow: false,
