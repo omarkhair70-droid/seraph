@@ -5,6 +5,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { Suspense, useRef } from "react";
 import * as THREE from "three";
 import SeraraCanonicalBody from "./SeraraCanonicalBody";
+import CinematicChamberVFX from "./CinematicChamberVFX";
 import {
   getSeraraPresence,
   getSeraraPulse,
@@ -218,6 +219,8 @@ function Chamber() {
       <LivingCamera />
 
       <ReactiveChamberField />
+
+      <CinematicChamberVFX />
 
       <SeraraCanonicalBody />
 
