@@ -23,9 +23,6 @@ export default function SeraphExperience() {
 
       <div className={styles.caption}>
         <span className={styles.marker}>PRESENCE / RITUAL / SOUND</span>
-        <p>
-          Move close. Touch once to wake the chamber. Stay long enough and it answers differently.
-        </p>
       </div>
     </main>
   );
