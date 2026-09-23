@@ -615,6 +615,39 @@ export default function SeraraCanonicalBody() {
       delta,
     );
 
+    const semanticOpenness = cameraLive
+      ? perception.openness * (0.3 + presenceMind.recognition * 0.7)
+      : 0;
+    const semanticAsymmetry = cameraLive
+      ? perception.shoulderAsymmetry *
+        (0.42 + presenceMind.recognition * 0.58)
+      : 0;
+    const semanticHand = cameraLive
+      ? perception.handSalience *
+        (0.42 + presenceMind.recognition * 0.58)
+      : 0;
+    const nearField = cameraLive
+      ? THREE.MathUtils.smoothstep(perception.proximity, 0.48, 0.86)
+      : 0;
+    const socialWarmth = cameraLive
+      ? perception.smile * presenceMind.recognition
+      : 0;
+    const cameraBrace = cameraLive
+      ? perception.motionEnergy *
+        (0.38 + presence * 0.62) *
+        (0.5 + presenceMind.avoidance * 0.5)
+      : 0;
+    const cameraEmbodiment = cameraLive
+      ? THREE.MathUtils.clamp(
+          0.42 +
+            presenceMind.recognition * 0.28 +
+            semanticHand * 0.18 +
+            nearField * 0.12,
+          0,
+          1,
+        )
+      : 0;
+
     const performance = updateSeraraPerformance(
       {
         presence,
@@ -955,39 +988,6 @@ export default function SeraraCanonicalBody() {
         (cameraLive
           ? perception.smile * presenceMind.recognition * 0.12
           : 0));
-
-    const semanticOpenness = cameraLive
-      ? perception.openness * (0.3 + presenceMind.recognition * 0.7)
-      : 0;
-    const semanticAsymmetry = cameraLive
-      ? perception.shoulderAsymmetry *
-        (0.42 + presenceMind.recognition * 0.58)
-      : 0;
-    const semanticHand = cameraLive
-      ? perception.handSalience *
-        (0.42 + presenceMind.recognition * 0.58)
-      : 0;
-    const nearField = cameraLive
-      ? THREE.MathUtils.smoothstep(perception.proximity, 0.48, 0.86)
-      : 0;
-    const socialWarmth = cameraLive
-      ? perception.smile * presenceMind.recognition
-      : 0;
-    const cameraBrace = cameraLive
-      ? perception.motionEnergy *
-        (0.38 + presence * 0.62) *
-        (0.5 + presenceMind.avoidance * 0.5)
-      : 0;
-    const cameraEmbodiment = cameraLive
-      ? THREE.MathUtils.clamp(
-          0.42 +
-            presenceMind.recognition * 0.28 +
-            semanticHand * 0.18 +
-            nearField * 0.12,
-          0,
-          1,
-        )
-      : 0;
 
     const keys = Object.keys(BONE_NAMES) as BoneKey[];
 
