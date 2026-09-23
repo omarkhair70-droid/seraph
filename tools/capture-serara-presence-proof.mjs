@@ -1,0 +1,102 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { chromium } from "playwright";
+
+const outputRoot = join(process.cwd(), "artifacts", "serara-presence-proof");
+const url = "http://127.0.0.1:3000/the-body?presenceProof=1&pose=grace";
+const checkpoints = [
+  ["01-arrival", 900],
+  ["02-recognition", 3600],
+  ["03-afterimage", 6800],
+];
+
+await mkdir(outputRoot, { recursive: true });
+
+async function captureEncounter(name, viewport, closeClip) {
+  const browser = await chromium.launch({ headless: true });
+  const videoDir = join(outputRoot, `${name}-video-tmp`);
+  const context = await browser.newContext({
+    viewport,
+    recordVideo: {
+      dir: videoDir,
+      size: viewport,
+    },
+  });
+  const page = await context.newPage();
+
+  await page.goto(url, { waitUntil: "networkidle" });
+  await page.waitForFunction(() => Boolean(window.__SERARA_PRESENCE__));
+
+  const startedAt = Date.now();
+  const telemetry = {};
+
+  for (const [label, targetMs] of checkpoints) {
+    const remaining = targetMs - (Date.now() - startedAt);
+    if (remaining > 0) {
+      await page.waitForTimeout(remaining);
+    }
+
+    await page.screenshot({
+      path: join(outputRoot, `${name}-${label}.png`),
+    });
+
+    await page.screenshot({
+      path: join(outputRoot, `${name}-${label}-close.png`),
+      clip: closeClip,
+    });
+
+    telemetry[label] = await page.evaluate(() => ({
+      ...(window.__SERARA_PRESENCE__ ?? {}),
+      capturedAt: performance.now(),
+    }));
+  }
+
+  const video = page.video();
+  await context.close();
+
+  if (video) {
+    await video.saveAs(join(outputRoot, `${name}-encounter.webm`));
+  }
+
+  await browser.close();
+
+  return telemetry;
+}
+
+const desktop = await captureEncounter(
+  "desktop",
+  { width: 1440, height: 1000 },
+  { x: 520, y: 55, width: 400, height: 620 },
+);
+
+const mobile = await captureEncounter(
+  "mobile",
+  { width: 390, height: 844 },
+  { x: 35, y: 38, width: 320, height: 405 },
+);
+
+const manifest = {
+  head: process.env.GITHUB_SHA ?? "local",
+  route: "/the-body?presenceProof=1&pose=grace",
+  method: "single continuous browser session per viewport",
+  checkpoints: Object.fromEntries(checkpoints),
+  desktop,
+  mobile,
+};
+
+await writeFile(
+  join(outputRoot, "proof-telemetry.json"),
+  `${JSON.stringify(manifest, null, 2)}\n`,
+);
+
+await writeFile(
+  join(outputRoot, "proof-manifest.txt"),
+  [
+    `commit=${manifest.head}`,
+    `route=${manifest.route}`,
+    "method=continuous-session",
+    "sequence=arrival@0.9s recognition@3.6s afterimage@6.8s",
+    "proof=full-frame + close-frame + telemetry + WebM motion capture",
+    "",
+  ].join("\n"),
+);
