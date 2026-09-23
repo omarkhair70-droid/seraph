@@ -366,12 +366,14 @@ export default function SeraraPerceptionSensor() {
       new URLSearchParams(window.location.search).has("perceptionProof");
 
     if (proofMode) {
-      const startedAt = performance.now();
-
       const runProof = () => {
         if (disposed) return;
 
-        const time = (performance.now() - startedAt) / 1000;
+        const root = globalThis as typeof globalThis & {
+          __SERARA_PRESENCE__?: Record<string, number>;
+        };
+        const time = root.__SERARA_PRESENCE__?.proofTime ?? 0;
+
         publishSeraraPerception(syntheticProofSnapshot(time));
         frameRequest = requestAnimationFrame(runProof);
       };
