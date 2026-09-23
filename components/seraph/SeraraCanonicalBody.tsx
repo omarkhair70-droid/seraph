@@ -495,11 +495,13 @@ export default function SeraraCanonicalBody() {
     }
 
     const perception = getSeraraPerceptionSnapshot();
+    const cameraSensorActive =
+      !proofModeRef.current && perception.status === "active";
     const cameraLive =
-      !proofModeRef.current &&
+      cameraSensorActive &&
       isSeraraCameraPerceptionLive(perception);
 
-    if (cameraLive) {
+    if (cameraSensorActive) {
       cameraPointerRef.current.set(
         perception.focusX,
         perception.focusY,
@@ -524,12 +526,16 @@ export default function SeraraCanonicalBody() {
       Math.min(1, delta * 3.2),
     );
 
-    const interactionEnergy = cameraLive
-      ? perception.motionEnergy
+    const interactionEnergy = cameraSensorActive
+      ? cameraLive
+        ? perception.motionEnergy
+        : 0
       : gestureEnergyRef.current;
 
-    const sensedPresence = cameraLive
-      ? perception.confidence * 0.18 + perception.proximity * 0.82
+    const sensedPresence = cameraSensorActive
+      ? cameraLive
+        ? perception.confidence * 0.18 + perception.proximity * 0.82
+        : 0
       : getSeraraPresence(effectivePointer);
 
     const rawPresence = THREE.MathUtils.clamp(
