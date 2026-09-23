@@ -6,10 +6,22 @@ import { chromium } from "playwright";
 const outputRoot = join(process.cwd(), "artifacts", "serara-presence-proof");
 const videoTempRoot = join(tmpdir(), "serara-presence-proof-video");
 const url = "http://127.0.0.1:3000/the-body?presenceProof=1&pose=grace";
-const checkpoints = [
-  ["01-arrival", 900],
-  ["02-recognition", 3600],
-  ["03-afterimage", 6800],
+const milestones = [
+  {
+    label: "01-arrival",
+    description:
+      "fast approach has been noticed; avoidance is present while recognition is still withheld",
+  },
+  {
+    label: "02-recognition",
+    description:
+      "held presence has quieted the body and recognition has materially emerged",
+  },
+  {
+    label: "03-afterimage",
+    description:
+      "the visitor has departed; recognition has released while encounter memory remains",
+  },
 ];
 
 await mkdir(outputRoot, { recursive: true });
@@ -20,16 +32,41 @@ async function waitForBody(page) {
   await page.waitForFunction(
     () => Boolean(globalThis.__SERARA_PRESENCE__),
     undefined,
-    { timeout: 20000 },
+    { timeout: 30000 },
   );
 }
 
-async function waitForProofTime(page, targetMs) {
+async function waitForMilestone(page, label) {
   await page.waitForFunction(
-    (target) =>
-      (globalThis.__SERARA_PRESENCE__?.proofTime ?? -1) >= target,
-    targetMs / 1000,
-    { timeout: 20000, polling: 25 },
+    (milestone) => {
+      const state = globalThis.__SERARA_PRESENCE__;
+      if (!state) return false;
+
+      if (milestone === "01-arrival") {
+        return (
+          state.proofTime >= 1.4 &&
+          state.avoidance >= 0.2 &&
+          state.recognition <= 0.12
+        );
+      }
+
+      if (milestone === "02-recognition") {
+        return (
+          state.proofTime >= 4 &&
+          state.proofTime < 9 &&
+          state.stillness >= 0.5 &&
+          state.recognition >= 0.35
+        );
+      }
+
+      return (
+        state.proofTime >= 10 &&
+        state.recognition <= 0.2 &&
+        state.afterimage >= 0.35
+      );
+    },
+    label,
+    { timeout: 30000, polling: 25 },
   );
 }
 
@@ -55,12 +92,17 @@ async function captureContinuousEncounter(name, viewport) {
   const video = page.video();
   const telemetry = {};
 
-  for (const [label, targetMs] of checkpoints) {
-    await waitForProofTime(page, targetMs);
-    telemetry[label] = await readTelemetry(page);
+  for (const milestone of milestones) {
+    await waitForMilestone(page, milestone.label);
+    telemetry[milestone.label] = await readTelemetry(page);
   }
 
-  await waitForProofTime(page, 7400);
+  await page.waitForFunction(
+    () => (globalThis.__SERARA_PRESENCE__?.proofTime ?? -1) >= 12,
+    undefined,
+    { timeout: 30000, polling: 25 },
+  );
+
   await context.close();
 
   if (video) {
@@ -75,17 +117,17 @@ async function captureCheckpointStills(name, viewport, closeClip) {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport });
 
-  for (const [label, targetMs] of checkpoints) {
+  for (const milestone of milestones) {
     const page = await context.newPage();
     await waitForBody(page);
-    await waitForProofTime(page, targetMs);
+    await waitForMilestone(page, milestone.label);
 
     await page.screenshot({
-      path: join(outputRoot, `${name}-${label}.png`),
+      path: join(outputRoot, `${name}-${milestone.label}.png`),
     });
 
     await page.screenshot({
-      path: join(outputRoot, `${name}-${label}-close.png`),
+      path: join(outputRoot, `${name}-${milestone.label}-close.png`),
       clip: closeClip,
     });
 
@@ -121,8 +163,9 @@ await captureCheckpointStills(
 const manifest = {
   head: process.env.GITHUB_SHA ?? "local",
   route: "/the-body?presenceProof=1&pose=grace",
-  method: "clean continuous video/telemetry plus isolated checkpoint stills",
-  checkpoints: Object.fromEntries(checkpoints),
+  method:
+    "clean continuous video/telemetry plus isolated semantic checkpoint stills",
+  milestones,
   desktop,
   mobile,
 };
@@ -137,9 +180,9 @@ await writeFile(
   [
     `commit=${manifest.head}`,
     `route=${manifest.route}`,
-    "method=clean-continuous-video-plus-isolated-stills",
-    "sequence=arrival@0.9s recognition@3.6s afterimage@6.8s",
-    "proof=uninterrupted WebM + exact checkpoint telemetry + isolated full/close frames",
+    "method=semantic-milestones",
+    "sequence=avoidance -> recognition/stillness -> afterimage",
+    "proof=uninterrupted WebM + semantic telemetry + isolated full/close frames",
     "",
   ].join("\n"),
 );
