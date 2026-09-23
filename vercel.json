@@ -2,7 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
     "deploymentEnabled": {
-      "experience/serara-waking-relic-20260922": false
+      "experience/serara-waking-relic-20260922": false,
+      "integration/seraph-two-experiences-20260923": false
     }
   }
 }
