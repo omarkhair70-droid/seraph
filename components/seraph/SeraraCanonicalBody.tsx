@@ -254,8 +254,9 @@ function updateMorphs(
   cameraLive: boolean,
   delta: number,
 ) {
-  const socialWarmth =
-    cameraLive * perception.smile * mind.recognition;
+  const socialWarmth = cameraLive
+    ? perception.smile * mind.recognition
+    : 0;
 
   const targets: Record<(typeof MORPH_TARGETS)[number], number> = {
     FACE_RELAXED: THREE.MathUtils.clamp(
