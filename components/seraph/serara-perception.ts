@@ -26,6 +26,10 @@ export type SeraraPerceptionSnapshot = {
   lastSeenAt: number;
 };
 
+type SeraraPerceptionStore = {
+  snapshot: SeraraPerceptionSnapshot;
+};
+
 const DEFAULT_SNAPSHOT: SeraraPerceptionSnapshot = {
   status: "idle",
   confidence: 0,
@@ -45,17 +49,33 @@ const DEFAULT_SNAPSHOT: SeraraPerceptionSnapshot = {
   lastSeenAt: -Infinity,
 };
 
-let snapshot: SeraraPerceptionSnapshot = { ...DEFAULT_SNAPSHOT };
+type SeraraPerceptionGlobal = typeof globalThis & {
+  __SERARA_PERCEPTION_STORE__?: SeraraPerceptionStore;
+};
+
+function getStore(): SeraraPerceptionStore {
+  const root = globalThis as SeraraPerceptionGlobal;
+
+  if (!root.__SERARA_PERCEPTION_STORE__) {
+    root.__SERARA_PERCEPTION_STORE__ = {
+      snapshot: { ...DEFAULT_SNAPSHOT },
+    };
+  }
+
+  return root.__SERARA_PERCEPTION_STORE__;
+}
 
 export function getSeraraPerceptionSnapshot(): SeraraPerceptionSnapshot {
-  return snapshot;
+  return getStore().snapshot;
 }
 
 export function publishSeraraPerception(
   next: Partial<SeraraPerceptionSnapshot>,
 ) {
-  snapshot = {
-    ...snapshot,
+  const store = getStore();
+
+  store.snapshot = {
+    ...store.snapshot,
     ...next,
   };
 }
@@ -63,7 +83,7 @@ export function publishSeraraPerception(
 export function resetSeraraPerception(
   status: SeraraPerceptionStatus = "idle",
 ) {
-  snapshot = {
+  getStore().snapshot = {
     ...DEFAULT_SNAPSHOT,
     status,
   };
