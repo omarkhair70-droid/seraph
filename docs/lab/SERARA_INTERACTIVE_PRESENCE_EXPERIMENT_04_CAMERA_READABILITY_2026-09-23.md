@@ -3,7 +3,7 @@
 Date: 2026-09-23  
 Branch: `lab/serara-interactive-presence-20260923`  
 Experience: `SERAPH / Experience 01 — THE BODY`  
-Status: EXPERIMENTAL / REAL-CAMERA READABILITY PASS IN PROGRESS
+Status: CLOSED / ACCEPTED INTO SERARA THE BODY FINAL ITERATION
 
 ## Trigger
 
@@ -151,3 +151,14 @@ Experiment 04 passes only if real-device video shows:
 - instant dramatic reward for a single gesture;
 - changing WAKING RELIC;
 - merging PR #4 before real-camera artistic review.
+
+
+## Closure note
+
+This experiment is now closed under:
+
+`docs/SERARA_THE_BODY_FINAL_CLOSURE_2026-09-23.md`
+
+The current iteration is frozen by explicit acceptance.
+
+Future changes must reopen the work as a new named experiment against a concrete broken acceptance rule rather than continuing open-ended tuning.
