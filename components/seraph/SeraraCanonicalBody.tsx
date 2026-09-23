@@ -406,6 +406,8 @@ export default function SeraraCanonicalBody() {
   const lastPointerRef = useRef(new THREE.Vector2());
   const gestureEnergyRef = useRef(0);
   const presenceMindRef = useRef(createSeraraPresenceMind());
+  const proofModeRef = useRef<boolean | null>(null);
+  const proofPointerRef = useRef(new THREE.Vector2());
   const sonic = useMemo(() => createSeraraSonic(), []);
   const { scene } = useGLTF(MODEL_URL);
 
@@ -436,11 +438,39 @@ export default function SeraraCanonicalBody() {
     const t = clock.elapsedTime;
     const state = getSeraraState(t);
 
+    if (proofModeRef.current === null) {
+      proofModeRef.current =
+        typeof window !== "undefined" &&
+        new URLSearchParams(window.location.search).has("presenceProof");
+    }
+
+    const effectivePointer = proofModeRef.current
+      ? proofPointerRef.current
+      : pointer;
+
+    if (proofModeRef.current) {
+      if (t < 0.9) {
+        const x = THREE.MathUtils.smoothstep(t, 0.08, 0.88);
+        effectivePointer.set(
+          THREE.MathUtils.lerp(-0.88, 0.12, x),
+          Math.sin(t * 12) * 0.16,
+        );
+      } else if (t < 4.45) {
+        effectivePointer.set(0.12, 0.06);
+      } else {
+        const departure = THREE.MathUtils.smoothstep(t, 4.45, 5.25);
+        effectivePointer.set(
+          THREE.MathUtils.lerp(0.12, 0.94, departure),
+          THREE.MathUtils.lerp(0.06, 0.72, departure),
+        );
+      }
+    }
+
     const pointerDelta = Math.hypot(
-      pointer.x - lastPointerRef.current.x,
-      pointer.y - lastPointerRef.current.y,
+      effectivePointer.x - lastPointerRef.current.x,
+      effectivePointer.y - lastPointerRef.current.y,
     );
-    lastPointerRef.current.set(pointer.x, pointer.y);
+    lastPointerRef.current.copy(effectivePointer);
     gestureEnergyRef.current = THREE.MathUtils.lerp(
       gestureEnergyRef.current,
       THREE.MathUtils.clamp(pointerDelta * 22, 0, 1),
@@ -454,7 +484,7 @@ export default function SeraraCanonicalBody() {
     );
 
     const rawPresence = THREE.MathUtils.clamp(
-      getSeraraPresence(pointer) + impulseRef.current * 0.34,
+      getSeraraPresence(effectivePointer) + impulseRef.current * 0.34,
       0,
       1,
     );
@@ -473,13 +503,19 @@ export default function SeraraCanonicalBody() {
 
     const presenceMind = updateSeraraPresenceMind(
       presenceMindRef.current,
-      pointer,
+      effectivePointer,
       presence,
       gestureEnergyRef.current,
       delta,
     );
 
-    sonic.update(state, presence, pulse, pointer.x, presenceMind);
+    sonic.update(
+      state,
+      presence,
+      pulse,
+      effectivePointer.x,
+      presenceMind,
+    );
 
     if (
       typeof window !== "undefined" &&
@@ -623,7 +659,7 @@ export default function SeraraCanonicalBody() {
         awareness +
       Math.sin(t * 0.17) * 0.011 * (1 - presenceMind.stillness * 0.7) +
       microSaccade -
-      pointer.x * presenceMind.avoidance * 0.038;
+      effectivePointer.x * presenceMind.avoidance * 0.038;
     const attentionPitch =
       -attentionRef.current.y * 0.064 * awareness +
       Math.sin(t * 0.13 + 0.6) *
@@ -633,7 +669,7 @@ export default function SeraraCanonicalBody() {
         0.0035 *
         awareness *
         (1 - presenceMind.stillness * 0.82) +
-      pointer.y * presenceMind.avoidance * 0.016;
+      effectivePointer.y * presenceMind.avoidance * 0.016;
 
     const targetYaw =
       presenceMind.attention.x *
@@ -641,7 +677,7 @@ export default function SeraraCanonicalBody() {
       Math.sin(t * 0.11) *
         0.006 *
         (1 - presenceMind.stillness * 0.78) -
-      pointer.x * presenceMind.avoidance * 0.018 -
+      effectivePointer.x * presenceMind.avoidance * 0.018 -
       state.fall * 0.04;
 
     motion.rotation.y = THREE.MathUtils.lerp(
