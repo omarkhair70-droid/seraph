@@ -407,6 +407,7 @@ export default function SeraraCanonicalBody() {
   const gestureEnergyRef = useRef(0);
   const presenceMindRef = useRef(createSeraraPresenceMind());
   const proofModeRef = useRef<boolean | null>(null);
+  const proofStartedAtRef = useRef<number | null>(null);
   const proofPointerRef = useRef(new THREE.Vector2());
   const sonic = useMemo(() => createSeraraSonic(), []);
   const { scene } = useGLTF(MODEL_URL);
@@ -444,21 +445,34 @@ export default function SeraraCanonicalBody() {
         new URLSearchParams(window.location.search).has("presenceProof");
     }
 
+    if (proofModeRef.current && proofStartedAtRef.current === null) {
+      proofStartedAtRef.current = t;
+    }
+
+    const proofTime =
+      proofModeRef.current && proofStartedAtRef.current !== null
+        ? Math.max(0, t - proofStartedAtRef.current)
+        : t;
+
     const effectivePointer = proofModeRef.current
       ? proofPointerRef.current
       : pointer;
 
     if (proofModeRef.current) {
-      if (t < 0.9) {
-        const x = THREE.MathUtils.smoothstep(t, 0.08, 0.88);
+      if (proofTime < 0.9) {
+        const x = THREE.MathUtils.smoothstep(proofTime, 0.08, 0.88);
         effectivePointer.set(
           THREE.MathUtils.lerp(-0.88, 0.12, x),
-          Math.sin(t * 12) * 0.16,
+          Math.sin(proofTime * 12) * 0.16,
         );
-      } else if (t < 4.45) {
+      } else if (proofTime < 4.45) {
         effectivePointer.set(0.12, 0.06);
       } else {
-        const departure = THREE.MathUtils.smoothstep(t, 4.45, 5.25);
+        const departure = THREE.MathUtils.smoothstep(
+          proofTime,
+          4.45,
+          5.25,
+        );
         effectivePointer.set(
           THREE.MathUtils.lerp(0.12, 0.94, departure),
           THREE.MathUtils.lerp(0.06, 0.72, departure),
@@ -526,7 +540,7 @@ export default function SeraraCanonicalBody() {
           __SERARA_PRESENCE__?: Record<string, number>;
         }
       ).__SERARA_PRESENCE__ = {
-        proofTime: t,
+        proofTime,
         stillness: presenceMind.stillness,
         recognition: presenceMind.recognition,
         avoidance: presenceMind.avoidance,
