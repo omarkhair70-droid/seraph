@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { getSeraraPerformanceSnapshot } from "./serara-performance";
 
 export type SeraraState = {
   grace: number;
@@ -31,6 +32,16 @@ export function getSeraraState(time: number): SeraraState {
     if (forced === "fall") {
       return { grace: 0, tension: 0, fall: 1 };
     }
+  }
+
+  const performance = getSeraraPerformanceSnapshot();
+
+  if (performance.active) {
+    return {
+      grace: performance.grace,
+      tension: performance.tension,
+      fall: performance.fall,
+    };
   }
 
   const cycle = time % 30;
@@ -74,4 +85,31 @@ export function getSeraraPulse(time: number, state: SeraraState) {
 
   const raw = Math.sin(time * frequency * Math.PI * 2) * 0.5 + 0.5;
   return Math.pow(raw, 2.2);
+}
+
+
+export function getSeraraWorldPresence(pointer: THREE.Vector2) {
+  const performance = getSeraraPerformanceSnapshot();
+
+  if (performance.active) {
+    return performance.worldPresence;
+  }
+
+  return getSeraraPresence(pointer);
+}
+
+export function getSeraraWorldAttention(pointer: THREE.Vector2) {
+  const performance = getSeraraPerformanceSnapshot();
+
+  if (performance.active) {
+    return {
+      x: performance.attentionX,
+      y: performance.attentionY,
+    };
+  }
+
+  return {
+    x: pointer.x,
+    y: pointer.y,
+  };
 }
