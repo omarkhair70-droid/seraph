@@ -26,6 +26,7 @@ import {
   isSeraraCameraPerceptionLive,
   type SeraraPerceptionSnapshot,
 } from "./serara-perception";
+import { updateSeraraPerformance } from "./serara-performance";
 
 const MODEL_URL = "/assets/serara-canonical.glb";
 const TARGET_HEIGHT = 3.65;
@@ -453,7 +454,7 @@ export default function SeraraCanonicalBody() {
     if (!motion || !current) return;
 
     const t = clock.elapsedTime;
-    const state = getSeraraState(t);
+    let state = getSeraraState(t);
 
     if (proofModeRef.current === null || proofClockModeRef.current === null) {
       const params =
@@ -558,10 +559,6 @@ export default function SeraraCanonicalBody() {
     );
 
     const presence = presenceRef.current;
-    const pulse = Math.max(
-      getSeraraPulse(t, state),
-      impulseRef.current * 0.92,
-    );
 
     const presenceMind = updateSeraraPresenceMind(
       presenceMindRef.current,
@@ -569,6 +566,29 @@ export default function SeraraCanonicalBody() {
       presence,
       interactionEnergy,
       delta,
+    );
+
+    const performance = updateSeraraPerformance(
+      {
+        presence,
+        movementEnergy: interactionEnergy,
+        touchImpulse: impulseRef.current,
+        recognition: presenceMind.recognition,
+        stillness: presenceMind.stillness,
+        avoidance: presenceMind.avoidance,
+        afterimage: presenceMind.afterimage,
+        attentionX: presenceMind.attention.x,
+        attentionY: presenceMind.attention.y,
+      },
+      delta,
+      t,
+    );
+
+    state = getSeraraState(t);
+
+    const pulse = Math.max(
+      getSeraraPulse(t, state),
+      impulseRef.current * 0.92,
     );
 
     sonic.update(
@@ -607,6 +627,10 @@ export default function SeraraCanonicalBody() {
         sensorSmile: perception.smile,
         sensorOpenness: perception.openness,
         sensorHand: perception.handSalience,
+        performanceHeat: performance.heat,
+        performanceFracture: performance.fracture,
+        performanceResidue: performance.residue,
+        performanceWorldPresence: performance.worldPresence,
       };
     }
 
