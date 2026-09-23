@@ -421,6 +421,7 @@ export default function SeraraCanonicalBody() {
   const gestureEnergyRef = useRef(0);
   const presenceMindRef = useRef(createSeraraPresenceMind());
   const proofModeRef = useRef<boolean | null>(null);
+  const proofClockModeRef = useRef<boolean | null>(null);
   const proofStartedAtRef = useRef<number | null>(null);
   const proofPointerRef = useRef(new THREE.Vector2());
   const cameraPointerRef = useRef(new THREE.Vector2());
@@ -454,18 +455,23 @@ export default function SeraraCanonicalBody() {
     const t = clock.elapsedTime;
     const state = getSeraraState(t);
 
-    if (proofModeRef.current === null) {
-      proofModeRef.current =
-        typeof window !== "undefined" &&
-        new URLSearchParams(window.location.search).has("presenceProof");
+    if (proofModeRef.current === null || proofClockModeRef.current === null) {
+      const params =
+        typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search)
+          : null;
+
+      proofModeRef.current = params?.has("presenceProof") ?? false;
+      proofClockModeRef.current =
+        proofModeRef.current || (params?.has("perceptionProof") ?? false);
     }
 
-    if (proofModeRef.current && proofStartedAtRef.current === null) {
+    if (proofClockModeRef.current && proofStartedAtRef.current === null) {
       proofStartedAtRef.current = t;
     }
 
     const proofTime =
-      proofModeRef.current && proofStartedAtRef.current !== null
+      proofClockModeRef.current && proofStartedAtRef.current !== null
         ? Math.max(0, t - proofStartedAtRef.current)
         : t;
 
