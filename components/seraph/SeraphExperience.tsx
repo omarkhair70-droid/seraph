@@ -1,11 +1,13 @@
 "use client";
 
 import SeraphWorld from "./SeraphWorld";
+import SeraraPerceptionSensor from "./SeraraPerceptionSensor";
 import styles from "./SeraphExperience.module.css";
 
 export default function SeraphExperience() {
   return (
     <main className={styles.shell}>
+      <SeraraPerceptionSensor />
       <div className={styles.world}>
         <SeraphWorld />
       </div>
