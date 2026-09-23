@@ -7,9 +7,10 @@ import * as THREE from "three";
 import SeraraCanonicalBody from "./SeraraCanonicalBody";
 import CinematicChamberVFX from "./CinematicChamberVFX";
 import {
-  getSeraraPresence,
   getSeraraPulse,
   getSeraraState,
+  getSeraraWorldAttention,
+  getSeraraWorldPresence,
 } from "./serara-state";
 import { getSeraraBurst } from "./serara-runtime-signal";
 
@@ -21,18 +22,19 @@ function LivingCamera() {
     if (!camera) return;
 
     const state = getSeraraState(clock.elapsedTime);
-    const presence = getSeraraPresence(pointer);
+    const presence = getSeraraWorldPresence(pointer);
+    const attention = getSeraraWorldAttention(pointer);
     const alpha = Math.min(1, delta * 1.35);
 
     camera.position.x = THREE.MathUtils.lerp(
       camera.position.x,
-      pointer.x * 0.105 * presence,
+      attention.x * 0.105 * presence,
       alpha,
     );
 
     camera.position.y = THREE.MathUtils.lerp(
       camera.position.y,
-      0.05 + pointer.y * 0.028 * presence - state.fall * 0.055,
+      0.05 + attention.y * 0.028 * presence - state.fall * 0.055,
       alpha,
     );
 
@@ -73,7 +75,8 @@ function ReactiveChamberField() {
   useFrame(({ clock, pointer }, delta) => {
     const t = clock.elapsedTime;
     const state = getSeraraState(t);
-    const presence = getSeraraPresence(pointer);
+    const presence = getSeraraWorldPresence(pointer);
+    const attention = getSeraraWorldAttention(pointer);
     const pulse = getSeraraPulse(t, state);
     const burst = getSeraraBurst();
     const alpha = Math.min(1, delta * 2.1);
@@ -94,7 +97,7 @@ function ReactiveChamberField() {
 
       crownRef.current.position.x =
         Math.sin(t * 0.11) * 0.12 +
-        pointer.x * presence * 0.08;
+        attention.x * presence * 0.08;
     }
 
     if (bloodRimRef.current) {
@@ -147,12 +150,12 @@ function ReactiveChamberField() {
       );
       faceRef.current.position.x = THREE.MathUtils.lerp(
         faceRef.current.position.x,
-        pointer.x * presence * 0.18,
+        attention.x * presence * 0.18,
         Math.min(1, delta * 2.2),
       );
       faceRef.current.position.y = THREE.MathUtils.lerp(
         faceRef.current.position.y,
-        1.28 + pointer.y * presence * 0.055,
+        1.28 + attention.y * presence * 0.055,
         Math.min(1, delta * 1.9),
       );
     }

@@ -1,11 +1,13 @@
 "use client";
 
 import SeraphWorld from "./SeraphWorld";
+import SeraraPerceptionSensor from "./SeraraPerceptionSensor";
 import styles from "./SeraphExperience.module.css";
 
 export default function SeraphExperience() {
   return (
     <main className={styles.shell}>
+      <SeraraPerceptionSensor />
       <div className={styles.world}>
         <SeraphWorld />
       </div>
@@ -21,9 +23,6 @@ export default function SeraphExperience() {
 
       <div className={styles.caption}>
         <span className={styles.marker}>PRESENCE / RITUAL / SOUND</span>
-        <p>
-          Move close. Touch once to wake the chamber. Stay long enough and it answers differently.
-        </p>
       </div>
     </main>
   );
