@@ -526,6 +526,7 @@ export default function SeraraCanonicalBody() {
           __SERARA_PRESENCE__?: Record<string, number>;
         }
       ).__SERARA_PRESENCE__ = {
+        proofTime: t,
         stillness: presenceMind.stillness,
         recognition: presenceMind.recognition,
         avoidance: presenceMind.avoidance,
