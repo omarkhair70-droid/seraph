@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SERAPH://01 — FALL / ASCENT",
+  title: "SERAPH — Interactive Cinematic World",
   description:
-    "An embodied interactive world where human posture changes a living digital presence.",
+    "An ongoing experimental world of embodied, cinematic and interactive digital experiences.",
   robots: {
     index: false,
     follow: false,

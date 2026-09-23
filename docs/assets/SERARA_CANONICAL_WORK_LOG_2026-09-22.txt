@@ -1,0 +1,92 @@
+SERARA CANONICAL — WORK LOG
+Date: 2026-09-22
+Project folder: C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing
+
+DELIVERY STATUS
+Requested .blend and .glb files created and technically verified.
+Canonical visual acceptance remains incomplete; see limitations below.
+
+ACTIONS COMPLETED
+1. Located Downloads/SERARA_BLENDER_WORK_PACK.zip and extracted into work/source_pack.
+2. Read FULL_BUILD_BRIEF.txt and inspected all six reference images individually.
+3. Used SERARA_HEAD_STUDY.png and SERARA_CANONICAL_TURNAROUND.png as primary guidance.
+4. Inspected existing Downloads/SERARA.blend without changing it. Found disconnected
+   blockout forms, incomplete finger articulation and poor reference fidelity; did
+   not reuse its geometry or rig.
+5. Authored new body profiles, a continuous body union, long five-finger hands,
+   recessed eyes, tapered jaw, long integrated neck, open cranial laminae, and
+   anatomical mineral recesses. No destructive state damage was modeled.
+6. Built a 53-bone humanoid hierarchy, including ten three-bone finger chains.
+7. Authored and normalized skin weights to a maximum of four bone influences.
+   Corrected pelvis/inner-thigh discontinuities and wrist region assignment after
+   visual and numerical deformation tests. Conformed body laminae to body surface.
+8. Added five subtle draft facial morphs, all zero in the delivered rest pose.
+9. Optimized to 65,986 triangles, saved neutral A-pose, packed canonical
+   reference images in the .blend, and exported a self-contained GLB.
+10. Removed five isolated remeshing triangles; the main body is one connected mesh.
+11. Validated final GLB: Khronos 0 errors / 0 warnings; Three.js parsing and skin tests
+    pass; fresh Blender GLB re-import and sampled deformation checks pass.
+12. Visually inspected front, side, back, head, hands, shoulder and compressed poses.
+    Opened GLB with a local Three.js WebGL viewer and checked live rendering.
+13. Saved diagnostic images, machine-readable verification reports, and SHA256 hashes.
+
+FINAL MEASUREMENTS
+Height: 2.394419 m
+Triangle count: 65986
+Bone count: 53
+GLB bytes: 2772856
+Unweighted vertices: 0
+Invalid weight sums: 0
+Vertices over four influences: 0
+Maximum tested edge stretch by pose:
+- neutral reimport: 1.0001x; 0 edges over 4x
+- neck shoulders elbows: 2.0168x; 0 edges over 4x
+- compressed FALL joint stress, geometry state neutral: 3.6116x; 0 edges over 4x
+- all ten finger chains curl: 3.6757x; 0 edges over 4x
+
+BLOCKERS / LIMITATIONS
+- No permission, sign-in, or manual-action blocker occurred.
+- The model is an original procedural interpretation. Its head and organic lattice
+  do not yet reproduce the full detail or exact identity of the head study. Do not
+  treat format validation as final artistic/canonical acceptance.
+- No production SERARA runtime was provided. Actual app shaders, animation library,
+  mobile-device performance, and all possible poses have not been tested.
+- Draft facial targets and thin surface laminae need further artistic review.
+- See RUNTIME_NOTES.txt for technical scope and limitations.
+
+SOURCE / LICENSE NOTES
+- User-supplied brief and six reference images; reference ownership retained by
+  original rights holder. No additional license was supplied for redistribution.
+- All delivered geometry, materials, and rig authored procedurally in this project.
+- No external mesh or texture asset used; no external asset license dependency.
+- Existing Downloads/SERARA.blend inspected only, not copied into the deliverable.
+- Tools: Blender 5.2.2 LTS, Three.js r186, Khronos glTF Validator.
+
+EXACT PRIMARY OUTPUT PATHS
+C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\outputs\SERARA_CANONICAL.blend
+C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\outputs\SERARA_CANONICAL.glb
+C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\outputs\SERARA_REVIEW.png
+C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\outputs\RUNTIME_NOTES.txt
+C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\WORK_LOG.txt
+C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\outputs\WORK_LOG.txt
+
+EXACT EVIDENCE PATHS
+C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\outputs\verification\BACK.png
+C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\outputs\verification\BLENDER_REIMPORT_VERIFICATION.json
+C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\outputs\verification\BUILD_STATS.json
+C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\outputs\verification\COMPRESSION.png
+C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\outputs\verification\FINGER_CURL.png
+C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\outputs\verification\FRONT.png
+C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\outputs\verification\GLTF_VALIDATION.json
+C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\outputs\verification\HAND.png
+C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\outputs\verification\HEAD.png
+C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\outputs\verification\REIMPORTED_GLB.png
+C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\outputs\verification\SHA256.json
+C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\outputs\verification\SHOULDERS.png
+C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\outputs\verification\SIDE.png
+C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\outputs\verification\SOURCE_AUDIT.json
+C:\Users\dell\Documents\Codex\2026-09-22\you-are-now-responsible-for-producing\outputs\verification\THREEJS_VERIFICATION.json
+
+FINAL ASSET SHA256
+SERARA_CANONICAL.blend: 6a5f9aec417f235e9a66406c19c2dc41d1d9d3fd80e1dca93548886a88c4bbde
+SERARA_CANONICAL.glb: 72c57656309556598a3edea8b09cf43efd3cbd90c883f41337e0700f549f3411

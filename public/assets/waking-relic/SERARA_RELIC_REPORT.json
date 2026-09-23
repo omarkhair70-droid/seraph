@@ -1,0 +1,13 @@
+{
+  "identity": "SERARA // THE WAKING RELIC",
+  "source_direction": "accidental monolithic multiview visual hull preserved intentionally",
+  "vertices": 107098,
+  "triangles": 214192,
+  "watertight": true,
+  "extents_m": [
+    0.88622823,
+    1.80110146,
+    0.80987874
+  ],
+  "orientation": "Y-up / centered for Three.js"
+}

@@ -1,0 +1,56 @@
+name: SERARA 3D Production Build
+
+on:
+  push:
+    branches:
+      - artifact/serara-3d-build-20260922
+    paths:
+      - 'tools/serara3d/**'
+      - '.github/workflows/serara-3d-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-serara:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore Blender builder
+        run: |
+          python - <<'PY'
+          import base64, gzip, pathlib
+          src = pathlib.Path('tools/serara3d/build_serara.py.gz.b64').read_text().strip()
+          pathlib.Path('tools/serara3d/build_serara.py').write_bytes(gzip.decompress(base64.b64decode(src)))
+          PY
+          python -m py_compile tools/serara3d/build_serara.py
+
+      - name: Install Blender and GLTF dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1 libglx-mesa0 libgl1-mesa-dri mesa-utils
+          blender --version
+          blender -b --python-expr "import numpy; print('BLENDER_NUMPY=' + numpy.__version__)"
+
+      - name: Build rigged SERARA asset
+        env:
+          SERARA_OUT_DIR: ${{ github.workspace }}/SERARA_3D_FINAL
+        run: |
+          blender -b --python tools/serara3d/build_serara.py
+          test -s SERARA_3D_FINAL/SERARA.blend
+          test -s SERARA_3D_FINAL/SERARA.glb
+          test -s SERARA_3D_FINAL/SERARA_BUILD_REPORT.json
+          cat SERARA_3D_FINAL/SERARA_BUILD_REPORT.json
+
+      - name: Upload production deliverables
+        uses: actions/upload-artifact@v4
+        with:
+          name: SERARA_3D_FINAL
+          path: SERARA_3D_FINAL/
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 30

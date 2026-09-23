@@ -1,0 +1,27 @@
+{
+  "ambient": "serara_ritual_ambient.mp3",
+  "lines": {
+    "wake": "You woke what was sleeping.",
+    "close": "Stay close.",
+    "silence": "There is a shape inside your silence.",
+    "opens": "Now it opens.",
+    "seam": "Follow the seam.",
+    "remain": "I will remain."
+  },
+  "files": {
+    "wake": "voice_wake.mp3",
+    "close": "voice_close.mp3",
+    "silence": "voice_silence.mp3",
+    "opens": "voice_opens.mp3",
+    "seam": "voice_seam.mp3",
+    "remain": "voice_remain.mp3"
+  },
+  "interaction_map": {
+    "first_presence": "wake",
+    "hover": "close",
+    "sustained_hover": "silence",
+    "activate": "opens",
+    "first_scroll": "seam",
+    "idle_return": "remain"
+  }
+}

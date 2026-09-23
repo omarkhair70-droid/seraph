@@ -1,0 +1,62 @@
+name: SERARA Waking Relic Assets
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - experience/serara-waking-relic-20260922
+    paths:
+      - '.github/workflows/serara-waking-relic-assets.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  install-relic-assets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout experience branch
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Install exact approved relic bundle
+        run: |
+          rm -rf public/assets/waking-relic
+          mkdir -p public/assets/waking-relic
+          curl -fL --retry 3 "https://at.adobe.com/5R5ci1dBUZso32Ug" -o /tmp/SERARA_WAKING_RELIC_ASSETS.zip
+          unzip -q /tmp/SERARA_WAKING_RELIC_ASSETS.zip -d public/assets/waking-relic
+
+      - name: Verify exact experience assets
+        run: |
+          test -s public/assets/waking-relic/SERARA_RELIC.glb
+          test -s public/assets/waking-relic/audio/serara_ritual_ambient.mp3
+          test -s public/assets/waking-relic/audio/voice_wake.mp3
+          test -s public/assets/waking-relic/audio/voice_close.mp3
+          test -s public/assets/waking-relic/audio/voice_silence.mp3
+          test -s public/assets/waking-relic/audio/voice_opens.mp3
+          test -s public/assets/waking-relic/audio/voice_seam.mp3
+          test -s public/assets/waking-relic/audio/voice_remain.mp3
+          find public/assets/waking-relic -type f -printf '%p %s bytes\n' | sort
+          cat public/assets/waking-relic/SERARA_RELIC_REPORT.json
+
+      - name: Commit approved relic assets
+        run: |
+          git config user.name "SERARA Asset Builder"
+          git config user.email "actions@users.noreply.github.com"
+          git add public/assets/waking-relic
+          if git diff --cached --quiet; then
+            echo "No asset changes to commit."
+          else
+            git commit -m "Install SERARA Waking Relic model and ritual audio"
+            git push origin HEAD:experience/serara-waking-relic-20260922
+          fi
+
+      - name: Upload relic bundle
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: SERARA_WAKING_RELIC_ASSETS
+          path: public/assets/waking-relic/
+          if-no-files-found: error
+          retention-days: 30
