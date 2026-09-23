@@ -464,7 +464,9 @@ export default function SeraraCanonicalBody() {
 
       proofModeRef.current = params?.has("presenceProof") ?? false;
       proofClockModeRef.current =
-        proofModeRef.current || (params?.has("perceptionProof") ?? false);
+        proofModeRef.current ||
+        (params?.has("perceptionProof") ?? false) ||
+        (params?.has("performanceProof") ?? false);
     }
 
     if (proofClockModeRef.current && proofStartedAtRef.current === null) {
@@ -605,12 +607,13 @@ export default function SeraraCanonicalBody() {
       typeof window !== "undefined" &&
       (
         new URLSearchParams(window.location.search).has("presenceProof") ||
-        new URLSearchParams(window.location.search).has("perceptionProof")
+        new URLSearchParams(window.location.search).has("perceptionProof") ||
+        new URLSearchParams(window.location.search).has("performanceProof")
       )
     ) {
       (
         window as typeof window & {
-          __SERARA_PRESENCE__?: Record<string, number>;
+          __SERARA_PRESENCE__?: Record<string, number | string>;
         }
       ).__SERARA_PRESENCE__ = {
         proofTime,
@@ -631,6 +634,10 @@ export default function SeraraCanonicalBody() {
         performanceFracture: performance.fracture,
         performanceResidue: performance.residue,
         performanceWorldPresence: performance.worldPresence,
+        performancePhase: performance.phase,
+        performanceGrace: performance.grace,
+        performanceTension: performance.tension,
+        performanceFall: performance.fall,
       };
     }
 
