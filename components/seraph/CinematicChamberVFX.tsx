@@ -4,9 +4,10 @@ import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import {
-  getSeraraPresence,
   getSeraraPulse,
   getSeraraState,
+  getSeraraWorldAttention,
+  getSeraraWorldPresence,
 } from "./serara-state";
 import { getSeraraBurst } from "./serara-runtime-signal";
 
@@ -174,7 +175,8 @@ function EmberField() {
 
     const t = clock.elapsedTime;
     const state = getSeraraState(t);
-    const presence = getSeraraPresence(pointer);
+    const presence = getSeraraWorldPresence(pointer);
+    const attention = getSeraraWorldAttention(pointer);
     const pulse = getSeraraPulse(t, state);
     const burst = getSeraraBurst();
     const attribute = points.geometry.getAttribute(
@@ -194,7 +196,7 @@ function EmberField() {
       array[index * 3] =
         baseX +
         Math.sin(t * 0.34 + phase) * (0.035 + state.fall * 0.065) +
-        pointer.x * presence * 0.025;
+        attention.x * presence * 0.025;
 
       array[index * 3 + 1] = -1.68 + ((baseY + 1.68 + lift) % 4.15);
 
@@ -280,12 +282,13 @@ function CounterCurrent() {
 
     const t = clock.elapsedTime;
     const state = getSeraraState(t);
-    const presence = getSeraraPresence(pointer);
+    const presence = getSeraraWorldPresence(pointer);
+    const attention = getSeraraWorldAttention(pointer);
     const conflict = Math.min(1, state.tension * 0.8 + state.fall * 0.7);
 
     points.rotation.y -= delta * (0.022 + state.tension * 0.035);
     points.rotation.z =
-      Math.sin(t * 0.09) * 0.035 - presence * pointer.x * 0.01;
+      Math.sin(t * 0.09) * 0.035 - presence * attention.x * 0.01;
 
     material.opacity = THREE.MathUtils.lerp(
       material.opacity,
@@ -346,7 +349,7 @@ function HostileFragments() {
 
     const t = clock.elapsedTime;
     const state = getSeraraState(t);
-    const presence = getSeraraPresence(pointer);
+    const presence = getSeraraWorldPresence(pointer);
     const pulse = getSeraraPulse(t, state);
     const burst = getSeraraBurst();
     const conflict = state.tension * 0.64 + state.fall + burst * 0.7;
@@ -455,7 +458,7 @@ function RitualRibbon({
 
     const t = clock.elapsedTime;
     const state = getSeraraState(t);
-    const presence = getSeraraPresence(pointer);
+    const presence = getSeraraWorldPresence(pointer);
     const heat = state.tension * 0.56 + state.fall + getSeraraBurst() * 0.7;
 
     current.uniforms.uTime.value = t;
@@ -511,7 +514,7 @@ function FloorFissureField() {
 
     const t = clock.elapsedTime;
     const state = getSeraraState(t);
-    const presence = getSeraraPresence(pointer);
+    const presence = getSeraraWorldPresence(pointer);
 
     current.uniforms.uTime.value = t;
     current.uniforms.uHeat.value =
@@ -544,7 +547,7 @@ function VolumetricShafts() {
   useFrame(({ clock, pointer }, delta) => {
     const t = clock.elapsedTime;
     const state = getSeraraState(t);
-    const presence = getSeraraPresence(pointer);
+    const presence = getSeraraWorldPresence(pointer);
     const burst = getSeraraBurst();
     const target =
       0.026 +
