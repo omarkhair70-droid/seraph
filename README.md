@@ -1,14 +1,19 @@
-# SERAPH
+# SERARA
 
 **Embodied interactive world / creative technology project.**
 
-SERAPH is not a website, dashboard, or collection of disconnected demos.
+Repository codename: `seraph`  
+Canonical visible project name: **SERARA**
+
+SERARA is not a website, dashboard, or collection of disconnected demos.
 
 It is a long-form interactive world where a human body, a digital humanoid, light, material, sound, memory, networked presence, physical objects and space can become one system.
 
 Current canonical experience:
 
-`SERAPH://01 — FALL / ASCENT`
+`SERARA://01 — FALL / ASCENT`
+
+The internal humanoid system may still use `Seraph` in code while the visible world is named SERARA. That distinction is intentional for now and can be cleaned later without blocking Phase 01.
 
 First production objective:
 
@@ -16,7 +21,7 @@ First production objective:
 
 A real humanoid presence with:
 - readable anatomy and face
-- rigged body motion
+- articulated / rig-ready body motion
 - breathing / idle life
 - Grace -> Conflict -> Fall material states
 - camera-based body perception
