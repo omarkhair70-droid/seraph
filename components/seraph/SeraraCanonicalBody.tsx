@@ -459,19 +459,19 @@ export default function SeraraCanonicalBody() {
       : pointer;
 
     if (proofModeRef.current) {
-      if (proofTime < 0.9) {
-        const x = THREE.MathUtils.smoothstep(proofTime, 0.08, 0.88);
+      if (proofTime < 1.4) {
+        const x = THREE.MathUtils.smoothstep(proofTime, 0.08, 1.32);
         effectivePointer.set(
           THREE.MathUtils.lerp(-0.88, 0.12, x),
-          Math.sin(proofTime * 12) * 0.16,
+          Math.sin(proofTime * 10) * 0.16,
         );
-      } else if (proofTime < 4.45) {
+      } else if (proofTime < 9) {
         effectivePointer.set(0.12, 0.06);
       } else {
         const departure = THREE.MathUtils.smoothstep(
           proofTime,
-          4.45,
-          5.25,
+          9,
+          10,
         );
         effectivePointer.set(
           THREE.MathUtils.lerp(0.12, 0.94, departure),
