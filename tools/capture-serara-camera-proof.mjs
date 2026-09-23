@@ -19,7 +19,7 @@ const checkpoints = [
 
 await mkdir(outputRoot, { recursive: true });
 
-async function captureEncounter(name, viewport, closeClip) {
+async function captureEncounter(name, viewport) {
   const browser = await chromium.launch({ headless: true });
   const videoDir = join(outputRoot, `${name}-video-tmp`);
   const context = await browser.newContext({
@@ -50,20 +50,15 @@ async function captureEncounter(name, viewport, closeClip) {
       { timeout: 20000, polling: 25 },
     );
 
-    await page.screenshot({
-      path: join(outputRoot, `${name}-${label}.png`),
-    });
-
-    await page.screenshot({
-      path: join(outputRoot, `${name}-${label}-close.png`),
-      clip: closeClip,
-    });
-
     telemetry[label] = await page.evaluate(() => ({
       ...(globalThis.__SERARA_PRESENCE__ ?? {}),
       capturedAt: performance.now(),
     }));
   }
+
+  await page.screenshot({
+    path: join(outputRoot, `${name}-afterimage-poster.png`),
+  });
 
   const video = page.video();
   await context.close();
@@ -79,13 +74,11 @@ async function captureEncounter(name, viewport, closeClip) {
 const desktop = await captureEncounter(
   "desktop",
   { width: 1440, height: 1000 },
-  { x: 520, y: 55, width: 400, height: 620 },
 );
 
 const mobile = await captureEncounter(
   "mobile",
   { width: 390, height: 844 },
-  { x: 35, y: 38, width: 320, height: 405 },
 );
 
 function assertSemanticProof(label, telemetry) {
@@ -163,7 +156,7 @@ await writeFile(
     `route=${manifest.route}`,
     "method=synthetic-semantic-continuous-session",
     "sequence=arrival@0.9s recognition+smile@3.6s raised-hand@5.5s afterimage@7.6s",
-    "proof=full-frame + close-frame + telemetry + WebM motion capture",
+    "proof=checkpoint telemetry + continuous WebM motion capture + afterimage poster",
     "real-camera-qa=OPEN",
     "",
   ].join("\n"),
