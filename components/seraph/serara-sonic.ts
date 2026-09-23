@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { SeraraState } from "./serara-state";
 import type { SeraraPresenceMind } from "./serara-presence-memory";
+import type { SeraraPerceptionSnapshot } from "./serara-perception";
 
 type AudioContextConstructor = typeof AudioContext;
 
@@ -31,6 +32,8 @@ export type SeraraSonic = {
     pulse: number,
     pointerX: number,
     presenceMind: SeraraPresenceMind,
+    perception: SeraraPerceptionSnapshot,
+    cameraLive: boolean,
   ) => void;
   dispose: () => void;
 };
@@ -394,6 +397,8 @@ export function createSeraraSonic(): SeraraSonic {
     pulse: number,
     pointerX: number,
     presenceMind: SeraraPresenceMind,
+    perception: SeraraPerceptionSnapshot,
+    cameraLive: boolean,
   ) => {
     if (
       !context ||
@@ -439,6 +444,15 @@ export function createSeraraSonic(): SeraraSonic {
       0,
       1,
     );
+    const socialWarmth = cameraLive
+      ? perception.smile * presenceMind.recognition
+      : 0;
+    const bodyOpen = cameraLive
+      ? perception.openness * presenceMind.recognition
+      : 0;
+    const gestureSalience = cameraLive
+      ? perception.handSalience * (0.35 + presenceMind.recognition * 0.65)
+      : 0;
 
     if (ambientElement) {
       const ambientTarget =
@@ -447,7 +461,8 @@ export function createSeraraSonic(): SeraraSonic {
         state.tension * 0.035 +
         state.fall * 0.028 +
         rememberedPresence * 0.025 +
-        presenceMind.recognition * 0.008;
+        presenceMind.recognition * 0.008 +
+        socialWarmth * 0.006;
       ambientElement.volume = THREE.MathUtils.lerp(
         ambientElement.volume,
         THREE.MathUtils.clamp(ambientTarget, 0.065, 0.16),
@@ -519,7 +534,8 @@ export function createSeraraSonic(): SeraraSonic {
       0.142 +
         rememberedPresence * 0.03 +
         heat * 0.024 +
-        presenceMind.recognition * 0.008 -
+        presenceMind.recognition * 0.008 +
+        socialWarmth * 0.006 -
         quiet * 0.006,
       now,
       0.22,
@@ -530,7 +546,8 @@ export function createSeraraSonic(): SeraraSonic {
         rememberedPresence * 0.018 +
         pulse * presence * 0.015 +
         heat * 0.011 +
-        presenceMind.recognition * 0.006,
+        presenceMind.recognition * 0.006 +
+        bodyOpen * 0.004,
       now,
       0.14,
     );
@@ -540,7 +557,9 @@ export function createSeraraSonic(): SeraraSonic {
         state.tension * 0.018 +
         state.fall * 0.012 +
         presence * pulse * 0.011 +
-        agitation * 0.008 -
+        agitation * 0.008 +
+        socialWarmth * 0.004 +
+        gestureSalience * 0.003 -
         quiet * 0.003,
       now,
       0.16,
@@ -551,7 +570,8 @@ export function createSeraraSonic(): SeraraSonic {
         state.grace * 0.005 +
         state.tension * 0.011 +
         state.fall * 0.008 +
-        rememberedPresence * 0.004 -
+        rememberedPresence * 0.004 +
+        bodyOpen * 0.002 -
         quiet * 0.002,
       now,
       0.25,
@@ -599,7 +619,9 @@ export function createSeraraSonic(): SeraraSonic {
       state.fall * 13 +
       pulse * presence * 2.6 -
       quiet * 2.8 +
-      presenceMind.recognition * 1.4;
+      presenceMind.recognition * 1.4 +
+      socialWarmth * 2.1 +
+      gestureSalience * 0.8;
 
     bodyOscillator.frequency.setTargetAtTime(fundamental, now, 0.16);
     harmonicOscillator.frequency.setTargetAtTime(
@@ -615,7 +637,9 @@ export function createSeraraSonic(): SeraraSonic {
         state.fall * 110 +
         rememberedPresence * 720 +
         pulse * presence * 220 +
-        agitation * 180 -
+        agitation * 180 +
+        bodyOpen * 90 +
+        gestureSalience * 70 -
         quiet * 110,
       now,
       0.13,
