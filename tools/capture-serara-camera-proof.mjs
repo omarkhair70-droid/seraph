@@ -11,10 +11,10 @@ const url =
   "http://127.0.0.1:3000/the-body?perceptionProof=1&pose=grace";
 
 const checkpoints = [
-  ["01-arrival", 900],
-  ["02-recognition-smile", 3600],
-  ["03-raised-hand", 5500],
-  ["04-afterimage", 7600],
+  "01-arrival",
+  "02-recognition-smile",
+  "03-raised-hand",
+  "04-afterimage",
 ];
 
 await mkdir(outputRoot, { recursive: true });
@@ -40,14 +40,42 @@ async function captureEncounter(name, viewport) {
 
   const telemetry = {};
 
-  for (const [label, targetMs] of checkpoints) {
-    const targetSeconds = targetMs / 1000;
-
+  for (const label of checkpoints) {
     await page.waitForFunction(
-      (target) =>
-        (globalThis.__SERARA_PRESENCE__?.proofTime ?? -1) >= target,
-      targetSeconds,
-      { timeout: 20000, polling: 25 },
+      (checkpoint) => {
+        const state = globalThis.__SERARA_PRESENCE__ ?? {};
+
+        switch (checkpoint) {
+          case "01-arrival":
+            return (
+              (state.cameraLive ?? 0) >= 0.5 &&
+              (state.sensorMotion ?? 0) >= 0.6
+            );
+          case "02-recognition-smile":
+            return (
+              (state.cameraLive ?? 0) >= 0.5 &&
+              (state.sensorSmile ?? 0) >= 0.5 &&
+              (state.recognition ?? 0) >= 0.12
+            );
+          case "03-raised-hand":
+            return (
+              (state.cameraLive ?? 0) >= 0.5 &&
+              (state.sensorHand ?? 0) >= 0.5 &&
+              (state.sensorOpenness ?? 0) >= 0.5
+            );
+          case "04-afterimage":
+            return (
+              (state.proofTime ?? 0) >= 10 &&
+              (state.cameraLive ?? 1) < 0.5 &&
+              (state.sensorConfidence ?? 1) <= 0.2 &&
+              (state.afterimage ?? 0) >= 0.16
+            );
+          default:
+            return false;
+        }
+      },
+      label,
+      { timeout: 25000, polling: 25 },
     );
 
     telemetry[label] = await page.evaluate(() => ({
@@ -134,7 +162,7 @@ const manifest = {
   method: "synthetic semantic perception / continuous session",
   limitation:
     "Validates response mapping only; real MediaPipe camera detection remains a real-device gate.",
-  checkpoints: Object.fromEntries(checkpoints),
+  checkpoints,
   desktop,
   mobile,
 };
@@ -155,7 +183,7 @@ await writeFile(
     `commit=${manifest.head}`,
     `route=${manifest.route}`,
     "method=synthetic-semantic-continuous-session",
-    "sequence=arrival@0.9s recognition+smile@3.6s raised-hand@5.5s afterimage@7.6s",
+    "sequence=condition-gated arrival -> recognition+smile -> raised-hand -> afterimage",
     "proof=checkpoint telemetry + continuous WebM motion capture + afterimage poster",
     "real-camera-qa=OPEN",
     "",
