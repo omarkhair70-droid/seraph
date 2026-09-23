@@ -3,7 +3,7 @@
 Date: 2026-09-23  
 Branch: `lab/serara-interactive-presence-20260923`  
 Experience: `SERAPH / Experience 01 — THE BODY`  
-Status: EXPERIMENTAL / PERFORMANCE ARC PROOF OPEN
+Status: RENDERED PERFORMANCE PROOF PASS / REAL-CAMERA ARTISTIC REVIEW OPEN
 
 ## Why this experiment exists
 
@@ -195,6 +195,25 @@ SERARA responds to interpreted encounter meaning, not raw input.
 
 The chamber is no longer intended to tell a different story from the body.
 
+## Event authorship correction
+
+The previous runtime treated a direct click on SERARA as an immediate cinematic burst.
+
+That behavior has been removed.
+
+Current law:
+- pointer / touch contact may wake audio and contribute pressure;
+- contact may influence strain through the interpreted encounter;
+- contact does not directly fire the rupture;
+- the cinematic burst is emitted once, on the actual transition into `FRACTURE`.
+
+This keeps the rupture authored by accumulated encounter pressure rather than by a hidden button.
+
+The public instructional sentence telling the visitor to move close / touch / wait has also been removed from THE BODY.
+
+The remaining presentation does not explain the interaction grammar.
+The visitor is expected to discover the relationship through presence.
+
 ## Existing systems preserved
 
 This experiment does not:
@@ -234,14 +253,55 @@ Reject or tune if:
 - state transitions are readable as UI/game states rather than embodied behavior;
 - interaction latency feels like dropped frames rather than character hesitation.
 
-## Proof gate
+## Proof result — 2026-09-23
 
-Experiment 03 requires:
-- CI PASS;
-- existing presence regression PASS;
-- existing camera semantic regression PASS;
-- deterministic performance-arc proof;
-- rendered video review;
-- then real-camera artistic review.
+Automated and rendered gates passed on the Experiment 03 conductor line.
 
-Do not merge PR #4 merely because the conductor compiles.
+Verified:
+- CI: PASS;
+- presence regression: PASS;
+- camera semantic regression: PASS;
+- deterministic embodied performance proof: PASS;
+- desktop rendered video review: PASS;
+- mobile rendered video review: PASS.
+
+Performance proof run:
+- workflow: `SERARA Performance Proof`;
+- run: `#11`;
+- artifact: `serara-performance-proof`;
+- artifact id: `10735285420`;
+- proof head: `961b144b34923e3c01e781cfea85fe32f4f968f7`.
+
+Representative desktop telemetry:
+- ATTUNE: recognition ~0.39, heat ~0.045, fracture 0;
+- STRAIN: tension ~0.77, heat ~0.71, fracture 0;
+- FRACTURE: fracture 1.0, tension 1.0, heat 1.0;
+- AFTERMATH: fall ~0.99, residue ~0.94;
+- REFORM: grace ~0.70 while residue remains ~0.53;
+- late residue: grace ~0.88, fracture 0, afterimage still present.
+
+Representative mobile telemetry follows the same dramatic order with device-dependent timing.
+
+Rendered review confirms:
+- calm presence does not automatically ignite the chamber;
+- STRAIN precedes the rupture;
+- FRACTURE and AFTERMATH read as one extended rupture rather than a one-frame effect;
+- AFTERMATH carries the strongest visible collapse / fire consequence;
+- REFORM restores the same body progressively;
+- residue remains after the peak instead of snapping to a neutral reset.
+
+The exact wall-clock timing differs between desktop and mobile.
+That is accepted: the conductor is phase-driven, not a fixed cutscene.
+
+## Gate still open
+
+Experiment 03 is **not canonical / merged yet**.
+
+Still required:
+- real webcam desktop review;
+- real webcam mobile review;
+- sound heard on an actual device, not only telemetry/render capture;
+- artistic judgment that hesitation reads as intention rather than performance lag;
+- confirmation that visitors can discover the encounter without an explicit tutorial.
+
+Do not merge PR #4 until those real-device artistic checks are complete.
