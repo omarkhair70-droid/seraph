@@ -262,10 +262,10 @@ function updateMorphs(
   const targets: Record<(typeof MORPH_TARGETS)[number], number> = {
     FACE_RELAXED: THREE.MathUtils.clamp(
       state.grace * 0.28 +
-        mind.recognition * 0.11 +
-        socialWarmth * 0.085,
+        mind.recognition * 0.16 +
+        socialWarmth * 0.16,
       0,
-      0.46,
+      0.54,
     ),
     FACE_TENSION: THREE.MathUtils.clamp(
       state.tension * 0.72 + mind.avoidance * 0.1,
@@ -278,8 +278,8 @@ function updateMorphs(
         state.fall * 0.64 +
         presence * state.grace * 0.055 +
         mind.avoidance * 0.2 -
-        mind.recognition * 0.06 -
-        socialWarmth * 0.045,
+        mind.recognition * 0.085 -
+        socialWarmth * 0.09,
       0,
       0.88,
     ),
@@ -775,10 +775,8 @@ export default function SeraraCanonicalBody() {
           presenceMind.recognition * 0.16 +
           presenceMind.afterimage * 0.1 -
           presenceMind.avoidance * 0.06 +
-          (cameraLive ? perception.handSalience * 0.09 : 0) +
-          (cameraLive
-            ? perception.smile * presenceMind.recognition * 0.08
-            : 0) +
+          (cameraLive ? semanticHand * 0.16 : 0) +
+          (cameraLive ? socialWarmth * 0.15 : 0) +
           impulseRef.current * 0.72,
         0,
         1.8,
@@ -815,9 +813,10 @@ export default function SeraraCanonicalBody() {
         state.tension * 0.56 +
         state.fall * 1.1 +
         presence * (0.22 + pulse * 0.42) +
-        (cameraLive
-          ? perception.openness * presenceMind.recognition * 0.16
-          : 0);
+        semanticOpenness * 0.22 +
+        semanticHand * 0.11 +
+        socialWarmth * 0.18 +
+        cameraBrace * 0.1;
       material.opacity =
         0.54 +
         state.grace * 0.1 +
