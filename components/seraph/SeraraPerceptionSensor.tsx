@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  getSeraraPerceptionSnapshot,
   publishSeraraPerception,
   resetSeraraPerception,
   type SeraraPerceptionSnapshot,
@@ -420,6 +421,33 @@ function syntheticProofSnapshot(time: number): Partial<SeraraPerceptionSnapshot>
 
 export default function SeraraPerceptionSensor() {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [debugEnabled, setDebugEnabled] = useState(false);
+  const [debugSnapshot, setDebugSnapshot] =
+    useState<SeraraPerceptionSnapshot | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const enabled = params.has("sensorDebug");
+    setDebugEnabled(enabled);
+
+    if (!enabled) return;
+
+    let frame = 0;
+    let active = true;
+
+    const sample = () => {
+      if (!active) return;
+      setDebugSnapshot({ ...getSeraraPerceptionSnapshot() });
+      frame = window.requestAnimationFrame(sample);
+    };
+
+    frame = window.requestAnimationFrame(sample);
+
+    return () => {
+      active = false;
+      window.cancelAnimationFrame(frame);
+    };
+  }, []);
 
   useEffect(() => {
     let disposed = false;
@@ -767,19 +795,55 @@ export default function SeraraPerceptionSensor() {
   }, []);
 
   return (
-    <video
-      ref={videoRef}
-      aria-hidden="true"
-      tabIndex={-1}
-      style={{
-        position: "fixed",
-        width: 1,
-        height: 1,
-        left: -9999,
-        top: -9999,
-        opacity: 0,
-        pointerEvents: "none",
-      }}
-    />
+    <>
+      <video
+        ref={videoRef}
+        aria-hidden="true"
+        tabIndex={-1}
+        style={{
+          position: "fixed",
+          width: 1,
+          height: 1,
+          left: -9999,
+          top: -9999,
+          opacity: 0,
+          pointerEvents: "none",
+        }}
+      />
+
+      {debugEnabled && debugSnapshot ? (
+        <div
+          aria-live="polite"
+          style={{
+            position: "fixed",
+            left: 12,
+            bottom: 12,
+            zIndex: 9999,
+            padding: "10px 12px",
+            maxWidth: 360,
+            border: "1px solid rgba(255,255,255,0.22)",
+            background: "rgba(0,0,0,0.78)",
+            color: "#f4eee8",
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+            fontSize: 11,
+            lineHeight: 1.45,
+            letterSpacing: "0.02em",
+            pointerEvents: "none",
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {[
+            `CAMERA  ${debugSnapshot.status.toUpperCase()}`,
+            `confidence ${debugSnapshot.confidence.toFixed(2)}`,
+            `proximity  ${debugSnapshot.proximity.toFixed(2)}`,
+            `motion     ${debugSnapshot.motionEnergy.toFixed(2)}`,
+            `stillness  ${debugSnapshot.stillness.toFixed(2)}`,
+            `smile      ${debugSnapshot.smile.toFixed(2)}`,
+            `hand       ${debugSnapshot.handSalience.toFixed(2)}`,
+            `focus      ${debugSnapshot.focusX.toFixed(2)}, ${debugSnapshot.focusY.toFixed(2)}`,
+          ].join("\n")}
+        </div>
+      ) : null}
+    </>
   );
 }
