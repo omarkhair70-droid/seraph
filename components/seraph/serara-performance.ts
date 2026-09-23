@@ -184,8 +184,13 @@ export function updateSeraraPerformance(
     delta,
   );
 
+  const sustainedStrain =
+    snapshot.phase === "strain" &&
+    Math.max(0, now - store.phaseStartedAt) > 1.15;
+
   const mayFracture =
     store.fractureStartedAt === null &&
+    sustainedStrain &&
     encounterAge > 1.8 &&
     directPresence > 0.34 &&
     store.strainCharge > 0.58 &&
