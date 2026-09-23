@@ -41,6 +41,17 @@ async function captureEncounter(name, viewport) {
   const telemetry = {};
 
   for (const label of checkpoints) {
+    // Intentionally move the raw pointer against the synthetic camera signal.
+    // Camera authority must keep SERARA driven by semantic perception.
+    if (label === "01-arrival") {
+      await page.mouse.move(viewport.width - 8, 8);
+    } else if (label === "02-recognition-smile") {
+      await page.mouse.move(8, viewport.height - 8);
+    } else if (label === "03-raised-hand") {
+      await page.mouse.move(8, 8);
+    } else {
+      await page.mouse.move(viewport.width - 8, viewport.height - 8);
+    }
     await page.waitForFunction(
       (checkpoint) => {
         const state = globalThis.__SERARA_PRESENCE__ ?? {};
@@ -121,6 +132,10 @@ function assertSemanticProof(label, telemetry) {
     failures.push("synthetic camera source never became authoritative");
   }
 
+  if (arrival.inputMode !== "camera" || (arrival.cameraAuthority ?? 0) < 0.5) {
+    failures.push("raw pointer retained authority after camera activation");
+  }
+
   if ((arrival.sensorMotion ?? 0) < 0.35) {
     failures.push("arrival did not contain high movement energy");
   }
@@ -139,6 +154,14 @@ function assertSemanticProof(label, telemetry) {
 
   if ((hand.sensorOpenness ?? 0) < 0.35) {
     failures.push("open-body semantic signal did not reach THE BODY");
+  }
+
+  if ((hand.cameraEmbodiment ?? 0) < 0.42) {
+    failures.push("camera semantics remained too weak to enter embodied response");
+  }
+
+  if (hand.inputMode !== "camera") {
+    failures.push("raised-hand phase fell back to pointer authority");
   }
 
   if ((afterimage.afterimage ?? 0) < 0.16) {
@@ -184,7 +207,7 @@ await writeFile(
     `route=${manifest.route}`,
     "method=synthetic-semantic-continuous-session",
     "sequence=condition-gated arrival -> recognition+smile -> raised-hand -> afterimage",
-    "proof=checkpoint telemetry + continuous WebM motion capture + afterimage poster",
+    "proof=checkpoint telemetry + adversarial raw-pointer movement + continuous WebM motion capture + afterimage poster",
     "real-camera-qa=OPEN",
     "",
   ].join("\n"),
