@@ -16,6 +16,11 @@ import {
 } from "./serara-state";
 import { createSeraraSonic } from "./serara-sonic";
 import { triggerSeraraBurst } from "./serara-runtime-signal";
+import {
+  createSeraraPresenceMind,
+  updateSeraraPresenceMind,
+  type SeraraPresenceMind,
+} from "./serara-presence-memory";
 
 const MODEL_URL = "/assets/serara-canonical.glb";
 const TARGET_HEIGHT = 3.65;
@@ -239,20 +244,39 @@ function updateMorphs(
   meshes: THREE.Mesh[],
   state: { grace: number; tension: number; fall: number },
   presence: number,
+  mind: SeraraPresenceMind,
   delta: number,
 ) {
   const targets: Record<(typeof MORPH_TARGETS)[number], number> = {
-    FACE_RELAXED: state.grace * 0.28,
-    FACE_TENSION: state.tension * 0.72,
+    FACE_RELAXED: THREE.MathUtils.clamp(
+      state.grace * 0.28 + mind.recognition * 0.11,
+      0,
+      0.46,
+    ),
+    FACE_TENSION: THREE.MathUtils.clamp(
+      state.tension * 0.72 + mind.avoidance * 0.1,
+      0,
+      0.82,
+    ),
     FACE_FALL: state.fall * 0.78,
-    EYES_NARROW:
+    EYES_NARROW: THREE.MathUtils.clamp(
       state.tension * 0.34 +
-      state.fall * 0.64 +
-      presence * state.grace * 0.055,
-    MOUTH_SEAM_OPEN:
+        state.fall * 0.64 +
+        presence * state.grace * 0.055 +
+        mind.avoidance * 0.2 -
+        mind.recognition * 0.06,
+      0,
+      0.88,
+    ),
+    MOUTH_SEAM_OPEN: THREE.MathUtils.clamp(
       state.tension * 0.035 +
-      state.fall * 0.13 +
-      presence * state.grace * 0.012,
+        state.fall * 0.13 +
+        presence * state.grace * 0.012 +
+        mind.avoidance * 0.025 -
+        mind.recognition * 0.01,
+      0,
+      0.18,
+    ),
   };
 
   const alpha = Math.min(1, delta * 2.4);
@@ -381,6 +405,7 @@ export default function SeraraCanonicalBody() {
   const impulseRef = useRef(0);
   const lastPointerRef = useRef(new THREE.Vector2());
   const gestureEnergyRef = useRef(0);
+  const presenceMindRef = useRef(createSeraraPresenceMind());
   const sonic = useMemo(() => createSeraraSonic(), []);
   const { scene } = useGLTF(MODEL_URL);
 
@@ -446,7 +471,33 @@ export default function SeraraCanonicalBody() {
       impulseRef.current * 0.92,
     );
 
-    sonic.update(state, presence, pulse, pointer.x);
+    const presenceMind = updateSeraraPresenceMind(
+      presenceMindRef.current,
+      pointer,
+      presence,
+      gestureEnergyRef.current,
+      delta,
+    );
+
+    sonic.update(state, presence, pulse, pointer.x, presenceMind);
+
+    if (
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).has("presenceProof")
+    ) {
+      (
+        window as typeof window & {
+          __SERARA_PRESENCE__?: Record<string, number>;
+        }
+      ).__SERARA_PRESENCE__ = {
+        stillness: presenceMind.stillness,
+        recognition: presenceMind.recognition,
+        avoidance: presenceMind.avoidance,
+        afterimage: presenceMind.afterimage,
+        attentionX: presenceMind.attention.x,
+        attentionY: presenceMind.attention.y,
+      };
+    }
 
     current.materialSignals.time.value = t;
     current.materialSignals.grace.value = state.grace;
@@ -485,6 +536,9 @@ export default function SeraraCanonicalBody() {
           state.fall * 0.22 +
           presence * 0.5 +
           pulse * presence * 0.26 +
+          presenceMind.recognition * 0.16 +
+          presenceMind.afterimage * 0.1 -
+          presenceMind.avoidance * 0.06 +
           impulseRef.current * 0.72,
         0,
         1.8,
@@ -529,31 +583,65 @@ export default function SeraraCanonicalBody() {
         presence * 0.08;
     }
 
-    updateMorphs(current.morphMeshes, state, presence, delta);
-
-    attentionTargetRef.current.set(pointer.x, pointer.y);
-    attentionRef.current.lerp(
-      attentionTargetRef.current,
-      Math.min(1, delta * (0.66 + state.tension * 0.34)),
+    updateMorphs(
+      current.morphMeshes,
+      state,
+      presence,
+      presenceMind,
+      delta,
     );
 
-    const awareness = 0.38 + presence * 0.62;
+    attentionTargetRef.current.copy(presenceMind.attention);
+    attentionRef.current.lerp(
+      attentionTargetRef.current,
+      Math.min(
+        1,
+        delta *
+          (0.38 +
+            presenceMind.recognition * 0.62 +
+            state.tension * 0.18),
+      ),
+    );
+
+    const awareness = THREE.MathUtils.clamp(
+      0.24 +
+        presence * 0.42 +
+        presenceMind.afterimage * 0.26 +
+        presenceMind.recognition * 0.16,
+      0,
+      1.08,
+    );
     const microSaccade =
-      Math.sin(t * 1.73) * Math.sin(t * 0.41 + 0.8) * 0.0075 * awareness;
+      Math.sin(t * 1.73) *
+      Math.sin(t * 0.41 + 0.8) *
+      0.0075 *
+      awareness *
+      (1 - presenceMind.stillness * 0.88);
     const attentionYaw =
       attentionRef.current.x *
         (0.118 - state.fall * 0.026) *
         awareness +
-      Math.sin(t * 0.17) * 0.011 +
-      microSaccade;
+      Math.sin(t * 0.17) * 0.011 * (1 - presenceMind.stillness * 0.7) +
+      microSaccade -
+      pointer.x * presenceMind.avoidance * 0.038;
     const attentionPitch =
       -attentionRef.current.y * 0.064 * awareness +
-      Math.sin(t * 0.13 + 0.6) * 0.007 +
-      Math.cos(t * 1.31) * 0.0035 * awareness;
+      Math.sin(t * 0.13 + 0.6) *
+        0.007 *
+        (1 - presenceMind.stillness * 0.72) +
+      Math.cos(t * 1.31) *
+        0.0035 *
+        awareness *
+        (1 - presenceMind.stillness * 0.82) +
+      pointer.y * presenceMind.avoidance * 0.016;
 
     const targetYaw =
-      pointer.x * (0.034 + presence * 0.026) +
-      Math.sin(t * 0.11) * 0.006 -
+      presenceMind.attention.x *
+        (0.026 + presenceMind.afterimage * 0.026) +
+      Math.sin(t * 0.11) *
+        0.006 *
+        (1 - presenceMind.stillness * 0.78) -
+      pointer.x * presenceMind.avoidance * 0.018 -
       state.fall * 0.04;
 
     motion.rotation.y = THREE.MathUtils.lerp(
@@ -564,30 +652,39 @@ export default function SeraraCanonicalBody() {
 
     motion.position.x = THREE.MathUtils.lerp(
       motion.position.x,
-      pointer.x * presence * 0.032 +
-        Math.sin(t * 0.23) * 0.006,
+      presenceMind.attention.x *
+          (presence * 0.018 + presenceMind.afterimage * 0.014) +
+        Math.sin(t * 0.23) *
+          0.006 *
+          (1 - presenceMind.stillness * 0.82),
       Math.min(1, delta * 1.6),
     );
 
     motion.position.y = THREE.MathUtils.lerp(
       motion.position.y,
-      -pointer.y * presence * 0.012 +
-        Math.sin(t * 0.39 + 0.8) * 0.004,
+      -presenceMind.attention.y *
+          (presence * 0.007 + presenceMind.afterimage * 0.006) +
+        Math.sin(t * 0.39 + 0.8) *
+          0.004 *
+          (1 - presenceMind.stillness * 0.8),
       Math.min(1, delta * 1.25),
     );
 
     motion.position.z = THREE.MathUtils.lerp(
       motion.position.z,
       -impulseRef.current * 0.072 -
-        gestureEnergyRef.current * presence * 0.012,
+        gestureEnergyRef.current * presence * 0.008 +
+        presenceMind.recognition * 0.012 -
+        presenceMind.avoidance * 0.018,
       Math.min(1, delta * 7),
     );
 
     motion.rotation.x = THREE.MathUtils.lerp(
       motion.rotation.x,
-      -pointer.y * presence * 0.012 +
+      -presenceMind.attention.y *
+          (presence * 0.007 + presenceMind.afterimage * 0.008) +
         state.fall * 0.012 +
-        gestureEnergyRef.current * pointer.y * 0.004,
+        presenceMind.avoidance * 0.006,
       Math.min(1, delta * 1.2),
     );
 
@@ -610,8 +707,10 @@ export default function SeraraCanonicalBody() {
 
     motion.rotation.z = THREE.MathUtils.lerp(
       motion.rotation.z,
-      -pointer.x * 0.002 +
-        Math.sin(t * 0.17) * 0.0015 +
+      -presenceMind.attention.x * 0.003 +
+        Math.sin(t * 0.17) *
+          0.0015 *
+          (1 - presenceMind.stillness * 0.76) +
         state.tension * 0.012 +
         state.fall * 0.04,
       Math.min(1, delta * 0.78),
@@ -619,7 +718,8 @@ export default function SeraraCanonicalBody() {
 
     const breathing =
       Math.sin(t * (0.86 + state.tension * 0.62)) *
-      (0.007 + state.grace * 0.0045);
+      (0.007 + state.grace * 0.0045) *
+      (1 - presenceMind.stillness * 0.38);
 
     const keys = Object.keys(BONE_NAMES) as BoneKey[];
 
@@ -646,10 +746,18 @@ export default function SeraraCanonicalBody() {
         fall[2] * state.fall;
 
       const interactiveWeight =
-        presence * (0.56 + gestureEnergyRef.current * 0.44);
+        Math.max(
+          presence * 0.42,
+          presenceMind.afterimage * 0.28,
+        ) *
+        (0.56 + gestureEnergyRef.current * 0.3) *
+        (1 - presenceMind.stillness * 0.18);
       const side = attentionRef.current.x;
       const vertical = attentionRef.current.y;
-      const softWave = Math.sin(t * 0.46) * (0.004 + state.grace * 0.003);
+      const softWave =
+        Math.sin(t * 0.46) *
+        (0.004 + state.grace * 0.003) *
+        (1 - presenceMind.stillness * 0.86);
 
       if (key === "hips") {
         y += side * interactiveWeight * 0.014 + softWave * 0.45;
@@ -672,17 +780,29 @@ export default function SeraraCanonicalBody() {
         x += -vertical * interactiveWeight * 0.012;
         z += side * interactiveWeight * 0.018 - gestureEnergyRef.current * 0.008;
       } else if (key === "leftArm") {
-        x += Math.sin(t * 0.58 + 0.4) * 0.006;
+        x +=
+          Math.sin(t * 0.58 + 0.4) *
+          0.006 *
+          (1 - presenceMind.stillness * 0.84);
         z += side * interactiveWeight * 0.012;
       } else if (key === "rightArm") {
-        x += Math.sin(t * 0.58 + 1.2) * 0.006;
+        x +=
+          Math.sin(t * 0.58 + 1.2) *
+          0.006 *
+          (1 - presenceMind.stillness * 0.84);
         z += side * interactiveWeight * 0.012;
       } else if (key === "leftForeArm" || key === "rightForeArm") {
-        x += Math.sin(t * 0.72 + (key === "leftForeArm" ? 0.2 : 1.7)) * 0.005;
+        x +=
+          Math.sin(t * 0.72 + (key === "leftForeArm" ? 0.2 : 1.7)) *
+          0.005 *
+          (1 - presenceMind.stillness * 0.86);
         y += side * interactiveWeight * 0.006;
       } else if (key === "leftHand" || key === "rightHand") {
         y += side * interactiveWeight * 0.008;
-        z += Math.sin(t * 0.83 + (key === "leftHand" ? 0.5 : 2.1)) * 0.006;
+        z +=
+          Math.sin(t * 0.83 + (key === "leftHand" ? 0.5 : 2.1)) *
+          0.006 *
+          (1 - presenceMind.stillness * 0.88);
       } else if (key === "leftUpLeg") {
         y += side * interactiveWeight * 0.006;
         z += -side * interactiveWeight * 0.008;
@@ -738,7 +858,8 @@ export default function SeraraCanonicalBody() {
 
       const idleSearch =
         Math.sin(t * 0.74 + fingerBone.phase) *
-        (0.006 + state.grace * 0.009 + presence * 0.012);
+        (0.006 + state.grace * 0.009 + presence * 0.012) *
+        (1 - presenceMind.stillness * 0.9);
 
       const curl =
         idleSearch +
@@ -748,7 +869,8 @@ export default function SeraraCanonicalBody() {
             state.tension * 0.16 +
             state.fall * 0.29 +
             presence * 0.018 +
-            impulseRef.current * 0.11
+            impulseRef.current * 0.11 -
+            presenceMind.recognition * 0.016
           );
 
       const curlQuaternion = new THREE.Quaternion().setFromEuler(
