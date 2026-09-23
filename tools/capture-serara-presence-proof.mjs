@@ -24,17 +24,24 @@ async function captureEncounter(name, viewport, closeClip) {
   });
   const page = await context.newPage();
 
-  await page.goto(url, { waitUntil: "networkidle" });
-  await page.waitForFunction(() => Boolean(window.__SERARA_PRESENCE__));
+  await page.goto(url, { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(
+    () => Boolean(globalThis.__SERARA_PRESENCE__),
+    undefined,
+    { timeout: 20000 },
+  );
 
-  const startedAt = Date.now();
   const telemetry = {};
 
   for (const [label, targetMs] of checkpoints) {
-    const remaining = targetMs - (Date.now() - startedAt);
-    if (remaining > 0) {
-      await page.waitForTimeout(remaining);
-    }
+    const targetSeconds = targetMs / 1000;
+
+    await page.waitForFunction(
+      (target) =>
+        (globalThis.__SERARA_PRESENCE__?.proofTime ?? -1) >= target,
+      targetSeconds,
+      { timeout: 20000, polling: 25 },
+    );
 
     await page.screenshot({
       path: join(outputRoot, `${name}-${label}.png`),
@@ -46,7 +53,7 @@ async function captureEncounter(name, viewport, closeClip) {
     });
 
     telemetry[label] = await page.evaluate(() => ({
-      ...(window.__SERARA_PRESENCE__ ?? {}),
+      ...(globalThis.__SERARA_PRESENCE__ ?? {}),
       capturedAt: performance.now(),
     }));
   }
