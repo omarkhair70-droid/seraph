@@ -79,59 +79,81 @@ async function captureEncounter(name, viewport) {
   const telemetry = {};
 
   for (const checkpoint of checkpoints) {
-    await page.waitForFunction(
-      ({ label }) => {
-        const state = globalThis.__SERARA_PRESENCE__ ?? {};
+    telemetry[checkpoint.label] = await page.evaluate(
+      ({ label, timeoutMs }) =>
+        new Promise((resolve, reject) => {
+          const startedAt = performance.now();
 
-        switch (label) {
-          case "01-attune":
-            return (
-              state.performancePhase === "attune" &&
-              (state.recognition ?? 0) >= 0.28 &&
-              (state.performanceFracture ?? 1) <= 0.08
-            );
-          case "02-strain":
-            return (
-              state.performancePhase === "strain" &&
-              (state.performanceTension ?? 0) >= 0.2 &&
-              (state.performanceFracture ?? 1) <= 0.18
-            );
-          case "03-fracture":
-            return (
-              state.performancePhase === "fracture" &&
-              (state.performanceFracture ?? 0) >= 0.45 &&
-              (state.performanceTension ?? 0) >= 0.5
-            );
-          case "04-aftermath":
-            return (
-              state.performancePhase === "aftermath" &&
-              (state.performanceFall ?? 0) >= 0.42 &&
-              (state.performanceResidue ?? 0) >= 0.3
-            );
-          case "05-reform":
-            return (
-              state.performancePhase === "reform" &&
-              (state.performanceGrace ?? 0) >= 0.55 &&
-              (state.performanceFall ?? 1) <= 0.32
-            );
-          case "06-residue":
-            return (
-              (state.proofTime ?? 0) >= 18 &&
-              (state.performanceFracture ?? 1) <= 0.05 &&
-              (state.performanceGrace ?? 0) >= 0.72
-            );
-          default:
-            return false;
-        }
-      },
-      { label: checkpoint.label },
-      { timeout: 35000, polling: 25 },
+          const matches = (state) => {
+            switch (label) {
+              case "01-attune":
+                return (
+                  state.performancePhase === "attune" &&
+                  (state.recognition ?? 0) >= 0.28 &&
+                  (state.performanceFracture ?? 1) <= 0.08
+                );
+              case "02-strain":
+                return (
+                  state.performancePhase === "strain" &&
+                  (state.performanceTension ?? 0) >= 0.2 &&
+                  (state.performanceFracture ?? 1) <= 0.18
+                );
+              case "03-fracture":
+                return (
+                  state.performancePhase === "fracture" &&
+                  (state.performanceFracture ?? 0) >= 0.45 &&
+                  (state.performanceTension ?? 0) >= 0.5
+                );
+              case "04-aftermath":
+                return (
+                  state.performancePhase === "aftermath" &&
+                  (state.performanceFall ?? 0) >= 0.42 &&
+                  (state.performanceResidue ?? 0) >= 0.3
+                );
+              case "05-reform":
+                return (
+                  state.performancePhase === "reform" &&
+                  (state.performanceGrace ?? 0) >= 0.55 &&
+                  (state.performanceFall ?? 1) <= 0.32
+                );
+              case "06-residue":
+                return (
+                  (state.proofTime ?? 0) >= 18 &&
+                  (state.performanceFracture ?? 1) <= 0.05 &&
+                  (state.performanceGrace ?? 0) >= 0.72
+                );
+              default:
+                return false;
+            }
+          };
+
+          const sample = () => {
+            const state = globalThis.__SERARA_PRESENCE__ ?? {};
+
+            if (matches(state)) {
+              resolve({
+                ...state,
+                capturedAt: performance.now(),
+              });
+              return;
+            }
+
+            if (performance.now() - startedAt > timeoutMs) {
+              reject(
+                new Error(
+                  `Timed out waiting for SERARA performance checkpoint: ${label}`,
+                ),
+              );
+              return;
+            }
+
+            requestAnimationFrame(sample);
+          };
+
+          sample();
+        }),
+      { label: checkpoint.label, timeoutMs: 35000 },
     );
-
-    telemetry[checkpoint.label] = await page.evaluate(() => ({
-      ...(globalThis.__SERARA_PRESENCE__ ?? {}),
-      capturedAt: performance.now(),
-    }));
   }
 
   await page.screenshot({
