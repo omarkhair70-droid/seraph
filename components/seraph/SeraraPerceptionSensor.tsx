@@ -240,6 +240,97 @@ function featureMotion(
   return clamp01(speed * 2.35);
 }
 
+
+function syntheticPerformanceSnapshot(
+  time: number,
+): Partial<SeraraPerceptionSnapshot> {
+  if (time < 1.2) {
+    const arrival = clamp01(time / 1.2);
+    return {
+      status: "active",
+      confidence: 1,
+      focusX: -0.28 + arrival * 0.34,
+      focusY: 0.12,
+      proximity: 0.46 + arrival * 0.14,
+      motionEnergy: 0.22,
+      stillness: 0.5,
+      smile: 0.04,
+      openness: 0.24,
+      shoulderAsymmetry: -0.04,
+      leftHandRaised: 0,
+      rightHandRaised: 0,
+      handSalience: 0,
+      headYaw: -0.06,
+      headRoll: 0.02,
+      lastSeenAt: performance.now(),
+    };
+  }
+
+  if (time < 5.0) {
+    const settle = clamp01((time - 1.2) / 2.6);
+    return {
+      status: "active",
+      confidence: 1,
+      focusX: 0.08,
+      focusY: 0.12,
+      proximity: 0.7,
+      motionEnergy: 0.018,
+      stillness: 0.985,
+      smile: settle * 0.22,
+      openness: 0.3,
+      shoulderAsymmetry: 0.01,
+      leftHandRaised: 0,
+      rightHandRaised: 0,
+      handSalience: 0,
+      headYaw: 0.02,
+      headRoll: -0.01,
+      lastSeenAt: performance.now(),
+    };
+  }
+
+  if (time < 8.6) {
+    const agitationAge = time - 5;
+    const wave = Math.sin(agitationAge * 8.5);
+    return {
+      status: "active",
+      confidence: 1,
+      focusX: 0.08 + wave * 0.62,
+      focusY: 0.12 + Math.cos(agitationAge * 6.2) * 0.32,
+      proximity: 0.88,
+      motionEnergy: 0.96,
+      stillness: 0.02,
+      smile: 0,
+      openness: 0.22,
+      shoulderAsymmetry: wave * 0.42,
+      leftHandRaised: wave < -0.35 ? 0.72 : 0,
+      rightHandRaised: wave > 0.35 ? 0.72 : 0,
+      handSalience: Math.abs(wave) > 0.35 ? 0.72 : 0.18,
+      headYaw: wave * 0.36,
+      headRoll: -wave * 0.18,
+      lastSeenAt: performance.now(),
+    };
+  }
+
+  return {
+    status: "active",
+    confidence: 0,
+    focusX: 0.08,
+    focusY: 0.12,
+    proximity: 0,
+    motionEnergy: 0,
+    stillness: 0,
+    smile: 0,
+    openness: 0,
+    shoulderAsymmetry: 0,
+    leftHandRaised: 0,
+    rightHandRaised: 0,
+    handSalience: 0,
+    headYaw: 0,
+    headRoll: 0,
+    lastSeenAt: performance.now() - 2000,
+  };
+}
+
 function syntheticProofSnapshot(time: number): Partial<SeraraPerceptionSnapshot> {
   if (time < 1.2) {
     return {
@@ -361,20 +452,29 @@ export default function SeraraPerceptionSensor() {
       lastSeenAt: -Infinity,
     };
 
-    const proofMode =
-      typeof window !== "undefined" &&
-      new URLSearchParams(window.location.search).has("perceptionProof");
+    const proofParams =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search)
+        : null;
+    const perceptionProofMode = proofParams?.has("perceptionProof") ?? false;
+    const performanceProofMode = proofParams?.has("performanceProof") ?? false;
+    const proofMode = perceptionProofMode || performanceProofMode;
 
     if (proofMode) {
       const runProof = () => {
         if (disposed) return;
 
         const root = globalThis as typeof globalThis & {
-          __SERARA_PRESENCE__?: Record<string, number>;
+          __SERARA_PRESENCE__?: Record<string, number | string>;
         };
-        const time = root.__SERARA_PRESENCE__?.proofTime ?? 0;
+        const rawTime = root.__SERARA_PRESENCE__?.proofTime;
+        const time = typeof rawTime === "number" ? rawTime : 0;
 
-        publishSeraraPerception(syntheticProofSnapshot(time));
+        publishSeraraPerception(
+          performanceProofMode
+            ? syntheticPerformanceSnapshot(time)
+            : syntheticProofSnapshot(time),
+        );
         frameRequest = requestAnimationFrame(runProof);
       };
 
