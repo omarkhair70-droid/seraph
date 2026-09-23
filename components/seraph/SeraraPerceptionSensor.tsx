@@ -244,17 +244,17 @@ function featureMotion(
 function syntheticPerformanceSnapshot(
   time: number,
 ): Partial<SeraraPerceptionSnapshot> {
-  if (time < 1.2) {
-    const arrival = clamp01(time / 1.2);
+  if (time < 2.5) {
+    const arrival = clamp01(time / 2.5);
     return {
       status: "active",
       confidence: 1,
       focusX: -0.28 + arrival * 0.34,
       focusY: 0.12,
       proximity: 0.46 + arrival * 0.14,
-      motionEnergy: 0.22,
-      stillness: 0.5,
-      smile: 0.04,
+      motionEnergy: 0.2,
+      stillness: 0.52,
+      smile: 0.03,
       openness: 0.24,
       shoulderAsymmetry: -0.04,
       leftHandRaised: 0,
@@ -266,8 +266,8 @@ function syntheticPerformanceSnapshot(
     };
   }
 
-  if (time < 5.0) {
-    const settle = clamp01((time - 1.2) / 2.6);
+  if (time < 8.0) {
+    const settle = clamp01((time - 2.5) / 3.5);
     return {
       status: "active",
       confidence: 1,
@@ -288,25 +288,25 @@ function syntheticPerformanceSnapshot(
     };
   }
 
-  if (time < 8.6) {
-    const agitationAge = time - 5;
-    const wave = Math.sin(agitationAge * 8.5);
+  if (time < 14.0) {
+    const agitationAge = time - 8;
+    const wave = Math.sin(agitationAge * 7.4);
     return {
       status: "active",
       confidence: 1,
       focusX: 0.08 + wave * 0.62,
-      focusY: 0.12 + Math.cos(agitationAge * 6.2) * 0.32,
-      proximity: 0.88,
-      motionEnergy: 0.96,
-      stillness: 0.02,
+      focusY: 0.12 + Math.cos(agitationAge * 5.2) * 0.32,
+      proximity: 0.9,
+      motionEnergy: 0.97,
+      stillness: 0.015,
       smile: 0,
-      openness: 0.22,
-      shoulderAsymmetry: wave * 0.42,
+      openness: 0.2,
+      shoulderAsymmetry: wave * 0.44,
       leftHandRaised: wave < -0.35 ? 0.72 : 0,
       rightHandRaised: wave > 0.35 ? 0.72 : 0,
-      handSalience: Math.abs(wave) > 0.35 ? 0.72 : 0.18,
-      headYaw: wave * 0.36,
-      headRoll: -wave * 0.18,
+      handSalience: Math.abs(wave) > 0.35 ? 0.72 : 0.2,
+      headYaw: wave * 0.38,
+      headRoll: -wave * 0.2,
       lastSeenAt: performance.now(),
     };
   }
