@@ -332,11 +332,12 @@ function syntheticPerformanceSnapshot(
 }
 
 function syntheticProofSnapshot(time: number): Partial<SeraraPerceptionSnapshot> {
-  if (time < 1.2) {
+  if (time < 3.5) {
+    const arrival = clamp01(time / 3.5);
     return {
       status: "active",
       confidence: 1,
-      focusX: -0.62 + time * 0.56,
+      focusX: -0.62 + arrival * 0.7,
       focusY: 0.18,
       proximity: 0.5,
       motionEnergy: 0.84,
@@ -353,8 +354,8 @@ function syntheticProofSnapshot(time: number): Partial<SeraraPerceptionSnapshot>
     };
   }
 
-  if (time < 4.4) {
-    const held = clamp01((time - 1.2) / 2.4);
+  if (time < 7.0) {
+    const held = clamp01((time - 3.5) / 2.4);
     return {
       status: "active",
       confidence: 1,
@@ -375,8 +376,8 @@ function syntheticProofSnapshot(time: number): Partial<SeraraPerceptionSnapshot>
     };
   }
 
-  if (time < 6.6) {
-    const gesture = clamp01((time - 4.4) / 0.65);
+  if (time < 10.0) {
+    const gesture = clamp01((time - 7.0) / 0.75);
     return {
       status: "active",
       confidence: 1,
