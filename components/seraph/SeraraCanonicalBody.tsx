@@ -421,6 +421,7 @@ export default function SeraraCanonicalBody() {
   const lastPointerRef = useRef(new THREE.Vector2());
   const gestureEnergyRef = useRef(0);
   const presenceMindRef = useRef(createSeraraPresenceMind());
+  const lastPerformancePhaseRef = useRef<string>("dormant");
   const proofModeRef = useRef<boolean | null>(null);
   const proofClockModeRef = useRef<boolean | null>(null);
   const proofStartedAtRef = useRef<number | null>(null);
@@ -585,6 +586,16 @@ export default function SeraraCanonicalBody() {
       delta,
       t,
     );
+
+    if (
+      performance.phase === "fracture" &&
+      lastPerformancePhaseRef.current !== "fracture"
+    ) {
+      triggerSeraraBurst();
+      sonic.burst();
+    }
+
+    lastPerformancePhaseRef.current = performance.phase;
 
     state = getSeraraState(t);
 
@@ -1080,9 +1091,7 @@ export default function SeraraCanonicalBody() {
       onPointerDown={(event) => {
         event.stopPropagation();
         impulseRef.current = 1;
-        triggerSeraraBurst();
         void sonic.wake();
-        sonic.burst();
       }}
     >
       <group scale={fitted.scale}>
