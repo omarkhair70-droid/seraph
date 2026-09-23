@@ -430,13 +430,13 @@ export default function SeraraPerceptionSensor() {
         ),
         focusX: damp(
           previousSnapshot.focusX,
-          raw.focusX,
+          seen ? raw.focusX : previousSnapshot.focusX,
           raw.handSalience > 0.36 ? medium : slow,
           deltaSeconds,
         ),
         focusY: damp(
           previousSnapshot.focusY,
-          raw.focusY,
+          seen ? raw.focusY : previousSnapshot.focusY,
           raw.handSalience > 0.36 ? medium : slow,
           deltaSeconds,
         ),
@@ -489,10 +489,15 @@ export default function SeraraPerceptionSensor() {
           raw.handSalience > previousSnapshot.handSalience ? 5.2 : 2.6,
           deltaSeconds,
         ),
-        headYaw: damp(previousSnapshot.headYaw, raw.headYaw, 3.2, deltaSeconds),
+        headYaw: damp(
+          previousSnapshot.headYaw,
+          seen ? raw.headYaw : previousSnapshot.headYaw,
+          3.2,
+          deltaSeconds,
+        ),
         headRoll: damp(
           previousSnapshot.headRoll,
-          raw.headRoll,
+          seen ? raw.headRoll : previousSnapshot.headRoll,
           3.2,
           deltaSeconds,
         ),
