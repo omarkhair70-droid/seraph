@@ -74,15 +74,16 @@ jobs:
 
           npx playwright screenshot             --browser=chromium             --viewport-size="1440,1000"             --wait-for-timeout=6800             "http://127.0.0.1:3000/the-body?presenceProof=1&pose=grace"             artifacts/serara-presence-proof/desktop-03-afterimage.png
 
-          npx playwright screenshot             --browser=chromium             --device="iPhone 13"             --wait-for-timeout=900             "http://127.0.0.1:3000/the-body?presenceProof=1&pose=grace"             artifacts/serara-presence-proof/mobile-01-arrival.png
+          npx playwright screenshot             --browser=chromium             --viewport-size="390,844"             --wait-for-timeout=900             "http://127.0.0.1:3000/the-body?presenceProof=1&pose=grace"             artifacts/serara-presence-proof/mobile-01-arrival.png
 
-          npx playwright screenshot             --browser=chromium             --device="iPhone 13"             --wait-for-timeout=3600             "http://127.0.0.1:3000/the-body?presenceProof=1&pose=grace"             artifacts/serara-presence-proof/mobile-02-recognition.png
+          npx playwright screenshot             --browser=chromium             --viewport-size="390,844"             --wait-for-timeout=3600             "http://127.0.0.1:3000/the-body?presenceProof=1&pose=grace"             artifacts/serara-presence-proof/mobile-02-recognition.png
 
-          npx playwright screenshot             --browser=chromium             --device="iPhone 13"             --wait-for-timeout=6800             "http://127.0.0.1:3000/the-body?presenceProof=1&pose=grace"             artifacts/serara-presence-proof/mobile-03-afterimage.png
+          npx playwright screenshot             --browser=chromium             --viewport-size="390,844"             --wait-for-timeout=6800             "http://127.0.0.1:3000/the-body?presenceProof=1&pose=grace"             artifacts/serara-presence-proof/mobile-03-afterimage.png
 
           printf '%s\n'             "commit=$GITHUB_SHA"             "route=/the-body?presenceProof=1&pose=grace"             "sequence=arrival@0.9s recognition@3.6s afterimage@6.8s"             > artifacts/serara-presence-proof/proof-manifest.txt
 
       - name: Upload presence proof
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: serara-presence-proof
