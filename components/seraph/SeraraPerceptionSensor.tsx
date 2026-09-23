@@ -642,17 +642,23 @@ export default function SeraraPerceptionSensor() {
     };
 
     const start = () => {
-      window.removeEventListener("pointerdown", start);
-      window.removeEventListener("keydown", start);
+      window.removeEventListener("pointerdown", start, true);
+      window.removeEventListener("keydown", start, true);
       void activate();
     };
 
-    window.addEventListener("pointerdown", start, { once: true });
-    window.addEventListener("keydown", start, { once: true });
+    window.addEventListener("pointerdown", start, {
+      once: true,
+      capture: true,
+    });
+    window.addEventListener("keydown", start, {
+      once: true,
+      capture: true,
+    });
 
     return () => {
-      window.removeEventListener("pointerdown", start);
-      window.removeEventListener("keydown", start);
+      window.removeEventListener("pointerdown", start, true);
+      window.removeEventListener("keydown", start, true);
       stop();
     };
   }, []);
