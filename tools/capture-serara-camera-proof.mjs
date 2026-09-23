@@ -135,9 +135,6 @@ function assertSemanticProof(label, telemetry) {
   }
 }
 
-assertSemanticProof("desktop", desktop);
-assertSemanticProof("mobile", mobile);
-
 const manifest = {
   head: process.env.GITHUB_SHA ?? "local",
   route: "/the-body?perceptionProof=1&pose=grace",
@@ -153,6 +150,11 @@ await writeFile(
   join(outputRoot, "proof-telemetry.json"),
   `${JSON.stringify(manifest, null, 2)}\n`,
 );
+
+console.log(JSON.stringify(manifest, null, 2));
+
+assertSemanticProof("desktop", desktop);
+assertSemanticProof("mobile", mobile);
 
 await writeFile(
   join(outputRoot, "proof-manifest.txt"),
