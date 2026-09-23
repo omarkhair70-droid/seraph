@@ -7,6 +7,7 @@ import {
   resetSeraraPerception,
   type SeraraPerceptionSnapshot,
 } from "./serara-perception";
+import { getSeraraPerformanceSnapshot } from "./serara-performance";
 
 type Landmark = {
   x: number;
@@ -424,6 +425,7 @@ export default function SeraraPerceptionSensor() {
   const [debugEnabled, setDebugEnabled] = useState(false);
   const [debugSnapshot, setDebugSnapshot] =
     useState<SeraraPerceptionSnapshot | null>(null);
+  const [debugPhase, setDebugPhase] = useState("dormant");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -438,6 +440,7 @@ export default function SeraraPerceptionSensor() {
     const sample = () => {
       if (!active) return;
       setDebugSnapshot({ ...getSeraraPerceptionSnapshot() });
+      setDebugPhase(getSeraraPerformanceSnapshot().phase);
       frame = window.requestAnimationFrame(sample);
     };
 
@@ -834,6 +837,8 @@ export default function SeraraPerceptionSensor() {
         >
           {[
             `CAMERA  ${debugSnapshot.status.toUpperCase()}`,
+            `SOURCE  ${debugSnapshot.status === "active" ? "CAMERA" : "POINTER/FALLBACK"}`,
+            `PHASE   ${debugPhase.toUpperCase()}`,
             `confidence ${debugSnapshot.confidence.toFixed(2)}`,
             `proximity  ${debugSnapshot.proximity.toFixed(2)}`,
             `motion     ${debugSnapshot.motionEnergy.toFixed(2)}`,
