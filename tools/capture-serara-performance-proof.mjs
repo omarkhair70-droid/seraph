@@ -11,12 +11,48 @@ const url =
   "http://127.0.0.1:3000/the-body?performanceProof=1";
 
 const checkpoints = [
-  ["01-attune", 7000],
-  ["02-strain", 8800],
-  ["03-fracture", 10200],
-  ["04-aftermath", 12000],
-  ["05-reform", 15500],
-  ["06-residue", 18800],
+  {
+    label: "01-attune",
+    test: (state) =>
+      state.performancePhase === "attune" &&
+      (state.recognition ?? 0) >= 0.28 &&
+      (state.performanceFracture ?? 1) <= 0.08,
+  },
+  {
+    label: "02-strain",
+    test: (state) =>
+      state.performancePhase === "strain" &&
+      (state.performanceTension ?? 0) >= 0.2 &&
+      (state.performanceFracture ?? 1) <= 0.18,
+  },
+  {
+    label: "03-fracture",
+    test: (state) =>
+      state.performancePhase === "fracture" &&
+      (state.performanceFracture ?? 0) >= 0.45 &&
+      (state.performanceTension ?? 0) >= 0.5,
+  },
+  {
+    label: "04-aftermath",
+    test: (state) =>
+      state.performancePhase === "aftermath" &&
+      (state.performanceFall ?? 0) >= 0.42 &&
+      (state.performanceResidue ?? 0) >= 0.3,
+  },
+  {
+    label: "05-reform",
+    test: (state) =>
+      state.performancePhase === "reform" &&
+      (state.performanceGrace ?? 0) >= 0.55 &&
+      (state.performanceFall ?? 1) <= 0.32,
+  },
+  {
+    label: "06-residue",
+    test: (state) =>
+      (state.proofTime ?? 0) >= 18 &&
+      (state.performanceFracture ?? 1) <= 0.05 &&
+      (state.performanceGrace ?? 0) >= 0.72,
+  },
 ];
 
 await mkdir(outputRoot, { recursive: true });
@@ -42,19 +78,57 @@ async function captureEncounter(name, viewport) {
 
   const telemetry = {};
 
-  for (const [label, targetMs] of checkpoints) {
-    const targetSeconds = targetMs / 1000;
-
+  for (const checkpoint of checkpoints) {
     await page.waitForFunction(
-      (target) => {
-        const value = globalThis.__SERARA_PRESENCE__?.proofTime;
-        return typeof value === "number" && value >= target;
+      ({ label }) => {
+        const state = globalThis.__SERARA_PRESENCE__ ?? {};
+
+        switch (label) {
+          case "01-attune":
+            return (
+              state.performancePhase === "attune" &&
+              (state.recognition ?? 0) >= 0.28 &&
+              (state.performanceFracture ?? 1) <= 0.08
+            );
+          case "02-strain":
+            return (
+              state.performancePhase === "strain" &&
+              (state.performanceTension ?? 0) >= 0.2 &&
+              (state.performanceFracture ?? 1) <= 0.18
+            );
+          case "03-fracture":
+            return (
+              state.performancePhase === "fracture" &&
+              (state.performanceFracture ?? 0) >= 0.45 &&
+              (state.performanceTension ?? 0) >= 0.5
+            );
+          case "04-aftermath":
+            return (
+              state.performancePhase === "aftermath" &&
+              (state.performanceFall ?? 0) >= 0.42 &&
+              (state.performanceResidue ?? 0) >= 0.3
+            );
+          case "05-reform":
+            return (
+              state.performancePhase === "reform" &&
+              (state.performanceGrace ?? 0) >= 0.55 &&
+              (state.performanceFall ?? 1) <= 0.32
+            );
+          case "06-residue":
+            return (
+              (state.proofTime ?? 0) >= 18 &&
+              (state.performanceFracture ?? 1) <= 0.05 &&
+              (state.performanceGrace ?? 0) >= 0.72
+            );
+          default:
+            return false;
+        }
       },
-      targetSeconds,
-      { timeout: 30000, polling: 25 },
+      { label: checkpoint.label },
+      { timeout: 35000, polling: 25 },
     );
 
-    telemetry[label] = await page.evaluate(() => ({
+    telemetry[checkpoint.label] = await page.evaluate(() => ({
       ...(globalThis.__SERARA_PRESENCE__ ?? {}),
       capturedAt: performance.now(),
     }));
@@ -188,7 +262,7 @@ const manifest = {
   head: process.env.GITHUB_SHA ?? "local",
   route: "/the-body?performanceProof=1",
   method: "deterministic interpreted encounter / continuous performance",
-  checkpoints: Object.fromEntries(checkpoints),
+  checkpoints: checkpoints.map(({ label }) => label),
   desktop,
   mobile,
 };
@@ -209,7 +283,7 @@ await writeFile(
     `commit=${manifest.head}`,
     `route=${manifest.route}`,
     "method=deterministic-embodied-performance",
-    "sequence=attune@7.0s strain@8.8s fracture@10.2s aftermath@12.0s reform@15.5s residue@18.8s",
+    "sequence=condition-gated attune -> strain -> fracture -> aftermath -> reform -> residue",
     "proof=checkpoint telemetry + continuous WebM + final poster",
     "real-camera-artistic-review=OPEN",
     "",
